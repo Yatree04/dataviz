@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { AffectedEvent } from './useClimateData';
+import YearScrubber from './YearScrubber';
 
 declare const maplibregl: any;
 
@@ -174,20 +175,8 @@ export default function MapPanel({ winstonEvent }: { winstonEvent?: AffectedEven
       </div>
 
       {mode === 'coastline' && (
-        <div style={{ marginTop: 12 }}>
-          <input
-            type="range"
-            min={YEAR_MIN}
-            max={YEAR_MAX}
-            value={year}
-            onChange={(e) => setYear(+e.target.value)}
-            style={{ width: '100%', accentColor: 'var(--accrete)' }}
-            aria-label="Coastline year"
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>
-            <span>{YEAR_MIN}</span>
-            <span>{YEAR_MAX}</span>
-          </div>
+        <div style={{ marginTop: 14 }}>
+          <YearScrubber min={YEAR_MIN} max={YEAR_MAX} value={year} onChange={setYear} tickEvery={4} />
         </div>
       )}
 
