@@ -27,6 +27,8 @@ function yearColor(year) {
 }
 
 export function initMap(containerId = 'map') {
+  const markedEvents = new Set();
+
   const map = new maplibregl.Map({
     container: containerId,
     style: BASEMAP_STYLE,
@@ -165,6 +167,12 @@ export function initMap(containerId = 'map') {
     },
 
     markEvent(lngLat, label) {
+      // Guard against duplicate pins — this is called again each time the
+      // beat re-enters the viewport (see main.js's replay-on-reintersect).
+      const key = `${lngLat.join(',')}|${label}`;
+      if (markedEvents.has(key)) return;
+      markedEvents.add(key);
+
       const elm = document.createElement('div');
       elm.className = 'event-marker';
       new maplibregl.Marker({ element: elm })

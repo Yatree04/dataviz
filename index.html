@@ -20,6 +20,19 @@
 
 <body>
 
+  <!-- ── PAGE LOADER (removed once real CSV data has loaded) ── -->
+  <div class="page-loader" id="page-loader" aria-hidden="true">
+    <div class="page-loader__mark">
+      <div class="page-loader__ring"></div>
+      <span class="page-loader__text">Loading Pacific climate data…</span>
+    </div>
+  </div>
+
+  <!-- ── SCROLL PROGRESS ──────────────────────────────────── -->
+  <div class="scroll-progress" aria-hidden="true">
+    <div class="scroll-progress__fill" id="scroll-progress-fill"></div>
+  </div>
+
   <!-- ── TOP NAV ──────────────────────────────────────────── -->
   <nav class="site-nav" aria-label="Site navigation">
     <a href="#" class="nav-back" aria-label="Back to top">
@@ -30,6 +43,9 @@
     </a>
     <span class="nav-eyebrow">Pacific DataViz Challenge 2026 · Climate Change</span>
   </nav>
+
+  <!-- ── WAYFINDING: beat dot rail (populated by JS) ───────── -->
+  <nav class="progress-rail" id="progress-rail" aria-label="Story progress"></nav>
 
   <!-- ── SINGLE-COLUMN STORY ─────────────────────────────── -->
   <div class="layout">
@@ -52,27 +68,28 @@
 
 
       <!-- ── BEAT 0: cold open — the coastline moves ──────── -->
-      <section class="step step--map" data-beat="0" id="beat-0">
-        <div class="narrative-card">
-          <span class="beat-label">The payoff, first</span>
-          <h2>This is a coastline. Watch it move.</h2>
-          <p>A real Pacific shoreline traced by satellite from 1999 to 2023.
-            <strong>Drag the timeline below</strong> to travel through time —
-            each position shows that year's measured coastline.
-          </p>
-          <p class="note">Coastline data: Digital Earth Pacific · Landsat annual shorelines, 1999–2023</p>
+      <section class="step step--map map-beat" data-beat="0" id="beat-0">
+        <div class="map-beat__text">
+          <div class="narrative-card">
+            <span class="beat-label">The payoff, first</span>
+            <h2>This is a coastline. Watch it move.</h2>
+            <p>A real Pacific shoreline traced by satellite from 1999 to 2023.
+              <strong>Drag the timeline below</strong> to travel through time —
+              each position shows that year's measured coastline.
+            </p>
+            <p class="note">Coastline data: Digital Earth Pacific · Landsat annual shorelines, 1999–2023</p>
+          </div>
+          <!-- Year timeline widget — inited by JS on first scroll to beat-0 -->
+          <div id="timeline-container" class="timeline-container"></div>
         </div>
-        <!-- Inline map block -->
-        <div class="map-block breakout">
-          <div id="map"></div>
-          <div id="year-counter" class="year-counter">2000</div>
-          <div class="map-caption" id="map-caption">Majuro Atoll, Marshall Islands</div>
+        <!-- Sticky visual: map pins here while the text above scrolls -->
+        <div class="map-beat__visual">
+          <div class="map-block">
+            <div id="map"></div>
+            <div id="year-counter" class="year-counter">2000</div>
+            <div class="map-caption" id="map-caption">Majuro Atoll, Marshall Islands</div>
+          </div>
         </div>
-        <!-- Optional: Choropleth geographic view -->
-        <h3 class="chart-title" style="margin-top:2rem;">Geographic Distribution</h3>
-        <div class="choropleth-container" id="choropleth-container"></div>
-        <!-- Year timeline widget — inited by JS on first scroll to beat-0 -->
-        <div id="timeline-container" class="timeline-container breakout"></div>
       </section>
 
       <!-- ── BEAT ①: emissions ───────────────────────────── -->
@@ -90,6 +107,11 @@
           <h3 class="chart-title">GHG emissions per capita — Pacific nations</h3>
           <div id="chart-emissions" class="chart"></div>
         </div>
+
+        <div class="chart-section breakout" style="margin-top:2rem;">
+          <h3 class="chart-title">Geographic distribution</h3>
+          <div class="choropleth-container" id="choropleth-container"></div>
+        </div>
       </section>
 
       <!-- ── BEAT ②: temperature ─────────────────────────── -->
@@ -97,7 +119,8 @@
         <span class="beat-label">The heat store</span>
         <h2>The ocean took the heat — 91% of it</h2>
         <p>When carbon dioxide traps solar radiation, the energy has to go somewhere. Scientists have measured
-          where: <strong>91% enters the ocean.</strong> The rest goes into the land surface, ice, and atmosphere.
+          where: <strong><span class="count-up" data-target="91" data-suffix="%">0%</span> enters the ocean.</strong>
+          The rest goes into the land surface, ice, and atmosphere.
         </p>
         <p>The chart shows both signals — land surface temperature anomaly and sea surface temperature anomaly — for
           a single country. Both are rising from the same baseline, but the ocean accumulates heat more slowly and
@@ -187,42 +210,53 @@
           <div class="pivot-body">
             <p>Water has risen. The reef is dying or dead. These are two separate consequences of the same heat — but
               they combine into something worse than either alone.</p>
-            <p>A healthy coral reef dissipates <strong>97% of a wave's energy</strong> before it reaches the shore. The
-              complex structures — branches, plates, ridges — create turbulence that extracts kinetic energy from
-              breaking waves.</p>
+            <p>A healthy coral reef dissipates <strong><span class="count-up" data-target="97" data-suffix="%">0%</span>
+                of a wave's energy</strong> before it reaches the shore. The complex structures — branches, plates,
+              ridges — create turbulence that extracts kinetic energy from breaking waves.</p>
             <p>When reef complexity drops by 50%, the mathematical relationship is not linear. Extreme-wave events
-              become <strong>more than 50 times more frequent</strong> at the shore.</p>
+              become <strong>more than <span class="count-up" data-target="50" data-suffix="×">0×</span> more
+                frequent</strong> at the shore.</p>
             <p>That is the causal hinge: warm water + dead reef = unbroken waves + higher water. The coast is now open
               to forces it was never meant to absorb alone.</p>
           </div>
           <p class="pivot-cite">Carlot et al. 2023, <em>Scientific Reports</em> (Mo'orea) · Ferrario et al. 2014 (97%
             energy dissipation)</p>
+          <p class="handoff">Now measured directly, from space</p>
         </div>
       </section>
 
       <!-- ── BEAT ⑤: measured retreat — MAP PAYOFF ─────── -->
-      <section class="step step--map" data-beat="5" id="beat-5">
-        <span class="beat-label">The measurement</span>
-        <h2>You don't have to model this</h2>
-        <p>Every transect on this map is a real measurement — metres of coastline gained or lost per year, from
-          satellite data across the entire Pacific. <span class="map-key map-key--erode">Red</span> retreats. <span
-            class="map-key map-key--accrete">Blue</span> builds.</p>
-        <p>Click any point to see the rate at that transect.</p>
-        <p class="note">Digital Earth Pacific · rates_of_change layer, 10.4 million transects, 2023</p>
+      <section class="step step--map map-beat" data-beat="5" id="beat-5">
+        <div class="map-beat__text">
+          <span class="beat-label">The measurement</span>
+          <h2>You don't have to model this</h2>
+          <p>Every transect on this map is a real measurement — metres of coastline gained or lost per year, from
+            satellite data across the entire Pacific. <span class="map-key map-key--erode">Red</span> retreats. <span
+              class="map-key map-key--accrete">Blue</span> builds.</p>
+          <p>Click any point to see the rate at that transect.</p>
+          <p class="note">Digital Earth Pacific · rates_of_change layer, 10.4 million transects, 2023</p>
+        </div>
+        <!-- Sticky visual — the map block is re-parented here by main.js -->
+        <div class="map-beat__visual" id="beat-5-visual"></div>
       </section>
 
       <!-- ── BEAT ⑥: coda — a displaced life ──────────── -->
-      <section class="step step--map" data-beat="6" id="beat-6">
-        <div class="narrative-card narrative-card--final">
-          <span class="beat-label">The physics, finally, is a person</span>
-          <h2>The line is where a home was</h2>
-          <p>Cyclone Winston made landfall in Fiji on 20 February 2016 — the most powerful tropical cyclone ever
-            recorded in the Southern Hemisphere at the time of landfall.</p>
-          <p class="stat"><strong>633,584 people</strong> were directly affected.</p>
-          <p>Every mechanism described above — warmer seas feeding cyclone intensity, dead reefs offering no wave brake,
-            raised water extending inland storm surge — converged in that one event.</p>
-          <p class="note">Source: SPC Pacific Data Hub · VC_DSR_AFFCT indicator · verified single-event record</p>
+      <section class="step step--map map-beat" data-beat="6" id="beat-6">
+        <div class="map-beat__text">
+          <div class="narrative-card narrative-card--final">
+            <span class="beat-label">The physics, finally, is a person</span>
+            <h2>The line is where a home was</h2>
+            <p>Cyclone Winston made landfall in Fiji on 20 February 2016 — the most powerful tropical cyclone ever
+              recorded in the Southern Hemisphere at the time of landfall.</p>
+            <p class="stat"><strong><span class="count-up" data-target="633584" data-suffix="">0</span>
+                people</strong> were directly affected.</p>
+            <p>Every mechanism described above — warmer seas feeding cyclone intensity, dead reefs offering no wave
+              brake, raised water extending inland storm surge — converged in that one event.</p>
+            <p class="note">Source: SPC Pacific Data Hub · VC_DSR_AFFCT indicator · verified single-event record</p>
+          </div>
         </div>
+        <!-- Sticky visual — the map block is re-parented here by main.js -->
+        <div class="map-beat__visual" id="beat-6-visual"></div>
       </section>
 
     </main>
@@ -268,7 +302,7 @@
   <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
 
-  <script type="module" src="js/main.js?v=5"></script>
+  <script type="module" src="js/main.js?v=6"></script>
 
 
 

@@ -5,7 +5,7 @@
    ─────────────────────────────────────────────────────── */
 
 /* ── Google Fonts import ──────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 /* ── Design tokens ────────────────────────────────────── */
 :root {
@@ -14,10 +14,14 @@
   --bg-white: #ffffff;
   --surface: #eeeeee;
   --border: #e0e0e0;
-  --ink: #1a1a1a;
+  --ink: #14110d;
   --ink-mid: #333333;
   --ink-muted: #666666;
   --ink-faint: #999999;
+
+  /* Fixed chrome heights, used to offset sticky elements */
+  --nav-h: 52px;
+  --rail-w: 3px;
 
   /* Accent — teal/ocean, used sparingly */
   --accent: #2a78d6;
@@ -57,7 +61,7 @@
   --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
 
   /* Typography */
-  --font-serif: 'Lora', Georgia, serif;
+  --font-serif: 'Fraunces', Georgia, serif;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
   /* Layout */
@@ -140,6 +144,114 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-faint);
+}
+
+/* ── Scroll progress bar ──────────────────────────────── */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--rail-w);
+  z-index: 101;
+  background: transparent;
+  pointer-events: none;
+}
+
+.scroll-progress__fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--ocean-mid), var(--accent-warm));
+  transition: width 0.08s linear;
+}
+
+/* ── Wayfinding: beat dot rail ────────────────────────── */
+.progress-rail {
+  position: fixed;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.rail-dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  text-decoration: none;
+  display: block;
+}
+
+.rail-dot:hover {
+  transform: scale(1.3);
+  background: var(--ink-faint);
+}
+
+.rail-dot.is-active {
+  background: var(--accent);
+  transform: scale(1.45);
+}
+
+.rail-tip {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: rgba(20, 17, 13, 0.92);
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.rail-dot:hover .rail-tip,
+.rail-dot:focus-visible .rail-tip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+@media (max-width: 1099px) {
+  .progress-rail {
+    display: none;
+  }
+}
+
+/* ── Count-up numerals ────────────────────────────────── */
+.count-up {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Handoff cue between beats ────────────────────────── */
+.handoff {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: 1.5rem;
+}
+
+.handoff::before {
+  content: '↓';
+  font-size: 1.1rem;
 }
 
 /* ── Story column ─────────────────────────────────────── */
@@ -250,11 +362,23 @@ body {
   opacity: 0;
   transform: translateY(28px);
   transition: opacity 0.7s var(--ease-bklit), transform 0.7s var(--ease-bklit);
+  /* Keeps section headings clear of the fixed nav when jumped to via an
+     anchor link (the progress-rail dots, or a direct #beat-N URL). */
+  scroll-margin-top: calc(var(--nav-h) + 12px);
 }
 
 .step.is-active {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* A `transform` on ANY ancestor — even translateY(0) — creates a new
+   containing block and silently breaks `position: sticky` on descendants
+   in every browser. Map-beat sections rely on sticky for the pinned map,
+   so they get an opacity-only reveal instead of the slide-up. */
+.step.map-beat,
+.step.map-beat.is-active {
+  transform: none;
 }
 
 /* ── Beat labels ──────────────────────────────────────── */
@@ -564,6 +688,57 @@ p strong {
   cursor: pointer;
 }
 
+/* ── Sticky map-backdrop layout (beats 0 / 5 / 6) ─────────
+   Two-column grid: narrative text scrolls in the left column
+   while the map pins in place in the right column — the map
+   reads as a persistent backdrop instead of a block that
+   scrolls past like everything else. ─────────────────────── */
+.map-beat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+  width: min(1180px, 100vw - 2 * var(--gap));
+  margin-left: calc((min(1180px, 100vw - 2 * var(--gap)) - min(var(--col), 100vw - 2 * var(--gap))) / -2);
+  position: relative;
+  left: 0;
+}
+
+.map-beat__text {
+  min-width: 0;
+}
+
+.map-beat__visual {
+  position: sticky;
+  top: calc(var(--nav-h) + 1.5rem);
+  min-width: 0;
+}
+
+.map-beat__visual .map-block {
+  margin-top: 0;
+}
+
+.map-beat__visual #map {
+  height: min(62vh, 560px);
+}
+
+@media (max-width: 1099px) {
+  .map-beat {
+    grid-template-columns: 1fr;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .map-beat__visual {
+    position: static;
+    order: -1;
+  }
+
+  .map-beat__visual #map {
+    height: 340px;
+  }
+}
+
 /* ── Narrative block (map / pivot sections) ────────────── */
 .narrative-card {
   background: var(--bg-white);
@@ -778,7 +953,9 @@ p strong {
 }
 
 /* ── Responsive ───────────────────────────────────────── */
-@media (max-width: 720px) {
+
+/* Tablet (≤768px): breakouts go full-bleed, map shrinks a touch */
+@media (max-width: 768px) {
   .story {
     padding: 4.5rem 1.25rem 6rem;
   }
@@ -794,6 +971,60 @@ p strong {
 
   .nav-eyebrow {
     display: none;
+  }
+
+  .narrative-card,
+  .pivot-card {
+    padding: 1.5rem 1.5rem 1.35rem;
+  }
+}
+
+/* Small phones (≤360px): tighten type + spacing further */
+@media (max-width: 360px) {
+  body {
+    font-size: 15.5px;
+  }
+
+  .story {
+    padding: 4rem 1rem 5rem;
+  }
+
+  .hero__title {
+    font-size: clamp(2.4rem, 11vw, 3.2rem);
+  }
+
+  .narrative-card,
+  .pivot-card {
+    padding: 1.15rem 1.1rem 1rem;
+  }
+
+  #map {
+    height: 250px;
+  }
+
+  .country-pills {
+    gap: 0.3rem;
+  }
+}
+
+/* Large desktop (≥1440px): more breathing room, no stretched lines */
+@media (min-width: 1440px) {
+  :root {
+    --col: 740px;
+    --wide: 980px;
+  }
+
+  .story {
+    padding-top: 6rem;
+  }
+
+  .map-beat {
+    width: min(1320px, 100vw - 2 * var(--gap));
+    margin-left: calc((min(1320px, 100vw - 2 * var(--gap)) - min(var(--col), 100vw - 2 * var(--gap))) / -2);
+  }
+
+  .map-beat__visual #map {
+    height: min(64vh, 640px);
   }
 }
 
@@ -951,6 +1182,55 @@ p strong {
 /* ── SVG axis styling (global) ───────────────────────── */
 .chart svg text {
   font-family: var(--font-sans);
+}
+
+/* ── Page-level loading veil (while CSVs fetch) ──────── */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s var(--ease-smooth), visibility 0.4s;
+}
+
+.page-loader.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.page-loader__mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.page-loader__ring {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  animation: page-loader-spin 0.85s linear infinite;
+}
+
+.page-loader__text {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@keyframes page-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Accessibility: reduced motion ───────────────────── */
