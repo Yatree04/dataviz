@@ -18,7 +18,7 @@ export default function HChart({ options, height = 260 }: { options: Highcharts.
     if (!ref.current) return;
     chartRef.current = Highcharts.chart(ref.current, {
       chart: {
-        backgroundColor: 'transparent',
+        backgroundColor: '#ffffff',
         plotBorderColor: BORDER,
         plotBorderWidth: 1,
         plotBorderRadius: 5,

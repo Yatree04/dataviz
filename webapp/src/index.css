@@ -5,6 +5,7 @@ html, body, #root {
 }
 
 :root {
+  color-scheme: light;
   --bg:         #ffffff;
   --bg-subtle:  #f9fafb;
   --ink:        #020817;

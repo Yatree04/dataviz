@@ -72,7 +72,7 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
           : [];
 
         chartRef.current = Highcharts.mapChart(containerRef.current, {
-          chart: { backgroundColor: 'transparent', animation: false },
+          chart: { backgroundColor: '#eaf2fb', animation: false },
           title: { text: undefined },
           credits: { enabled: false },
           accessibility: { enabled: false },
@@ -94,9 +94,9 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
               type: 'map',
               name: 'Pacific',
               mapData: topology,
-              nullColor: '#eef2f6',
-              borderColor: '#cbd5e1',
-              borderWidth: 0.5,
+              nullColor: '#e2e8f0',
+              borderColor: '#64748b',
+              borderWidth: 0.75,
               enableMouseTracking: false,
               showInLegend: false,
             },
@@ -246,7 +246,7 @@ function CountryHistory({ country, onClose }: { country: MapCountry; onClose: ()
       chart: {
         type: 'line',
         height: 160,
-        backgroundColor: 'transparent',
+        backgroundColor: '#ffffff',
         plotBorderColor: BORDER,
         plotBorderWidth: 1,
         plotBorderRadius: 5,
