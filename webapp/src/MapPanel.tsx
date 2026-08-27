@@ -15,10 +15,23 @@ const TILEJSON_URL = 'https://tileserver.prod.digitalearthpacific.io/data/coastl
 const SOURCE_ID = 'dep-coastlines';
 const SHORELINE_SRC = 'shorelines_annual';
 const RATES_SRC = 'rates_of_change';
-const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 const YEAR_MIN = 1999;
 const YEAR_MAX = 2023;
+
+// A minimal self-contained style — no dependency on a third-party basemap
+// server (tiles.openfreemap.org previously). If that external style JSON
+// failed to load for any reason (down, CORS, rate limit), MapLibre rendered
+// nothing at all: no background, no coastline, just the panel's own CSS
+// background showing through. This style has nothing to fetch but our own
+// data source, so it can't fail the same way.
+const BASE_STYLE = {
+  version: 8 as const,
+  sources: {},
+  layers: [
+    { id: 'bg', type: 'background' as const, paint: { 'background-color': '#0a2540' } },
+  ],
+};
 
 function yearColor(year: number) {
   const t = (year - YEAR_MIN) / (YEAR_MAX - YEAR_MIN);
@@ -36,6 +49,7 @@ export default function MapPanel({ winstonEvent }: { winstonEvent?: AffectedEven
   const [mode, setMode] = useState<Mode>('coastline');
   const [year, setYear] = useState(2023);
   const [ready, setReady] = useState(false);
+  const [sourceError, setSourceError] = useState<string | null>(null);
   const markerAdded = useRef(false);
 
   // Init map once
@@ -43,12 +57,21 @@ export default function MapPanel({ winstonEvent }: { winstonEvent?: AffectedEven
     if (!containerRef.current || typeof maplibregl === 'undefined') return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: BASEMAP_STYLE,
+      style: BASE_STYLE as any,
       center: [171.0, 7.1],
       zoom: 9,
       attributionControl: true,
     });
     mapRef.current = map;
+
+    // Surface failures instead of a silent blank map — this is the thing
+    // that made the earlier bug invisible in the browser console.
+    map.on('error', (e: any) => {
+      console.error('MapLibre error:', e?.error || e);
+      if (e?.sourceId === SOURCE_ID || /coastlines\.json/.test(e?.error?.message || '')) {
+        setSourceError(e?.error?.message || 'Failed to load the coastline tile source.');
+      }
+    });
 
     map.on('load', () => {
       map.addSource(SOURCE_ID, { type: 'vector', url: TILEJSON_URL });
@@ -76,6 +99,20 @@ export default function MapPanel({ winstonEvent }: { winstonEvent?: AffectedEven
           ],
           'circle-opacity': 0.75,
         },
+      });
+
+      // Diagnostic: the vector source can load successfully with zero
+      // matching features if the real tiles use different source-layer
+      // names than 'shorelines_annual' / 'rates_of_change' — that fails
+      // silently (no 'error' event), it just renders nothing. Check once
+      // the source has actually finished loading tiles at this view.
+      map.once('idle', () => {
+        const shorelineFeatures = map.querySourceFeatures(SOURCE_ID, { sourceLayer: SHORELINE_SRC });
+        if (shorelineFeatures.length === 0) {
+          const msg = `No features found in source-layer "${SHORELINE_SRC}" — the tile source loaded, but this layer name likely doesn't match the real data. Check the tile source's actual layer names.`;
+          console.warn(msg);
+          setSourceError(msg);
+        }
       });
 
       map.on('click', 'rates', (e: any) => {
@@ -172,6 +209,19 @@ export default function MapPanel({ winstonEvent }: { winstonEvent?: AffectedEven
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
         <div className="map-caption">{caption}</div>
         {mode === 'coastline' && <div className="map-year-badge">{year}</div>}
+        {sourceError && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24, background: 'rgba(10,37,64,0.92)', color: '#fff', textAlign: 'center',
+          }}>
+            <div style={{ maxWidth: 420 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#f5c14e', marginBottom: 8 }}>
+                Coastline data didn't load
+              </div>
+              <div style={{ fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}>{sourceError}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {mode === 'coastline' && (
