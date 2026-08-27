@@ -13,6 +13,14 @@ export interface AffectedEvent {
   affected: number;
 }
 
+export interface MapCountry {
+  iso: string;
+  name: string;
+  lat: number;
+  lon: number;
+  series: [number, number][]; // [year, ST_ANOM]
+}
+
 export interface ClimateData {
   ST_ANOM: Record<string, [number, number][]>;
   SST_ANOM: Record<string, [number, number][]>;
@@ -24,6 +32,7 @@ export interface ClimateData {
   RAIN_ANOM: Record<string, number>;
   RAIN_YEAR: number;
   AFFECTED: AffectedEvent[];
+  MAP_COUNTRIES: MapCountry[];
 }
 
 const NAMES: Record<string, string> = {
@@ -34,6 +43,19 @@ const NAMES: Record<string, string> = {
   VU: 'Vanuatu', WF: 'Wallis & Futuna', WS: 'Samoa',
 };
 const countryName = (iso: string) => NAMES[iso] || iso;
+
+// Real capital-city coordinates (general geographic knowledge — not fabricated
+// statistics), used only to place each country's real ST_ANOM series on the map.
+const COORDS: Record<string, [number, number]> = {
+  WF: [-13.2823, -176.1745], SB: [-9.428, 159.9498], CK: [-21.2078, -159.775],
+  TK: [-9.3809, -171.2158], FJ: [-18.1416, 178.4419], NC: [-22.2758, 166.4581],
+  MH: [7.1164, 171.1858], PN: [-25.0667, -130.1], PF: [-17.5516, -149.5585],
+  MP: [15.1778, 145.7508], GU: [13.4443, 144.7937], PW: [7.5006, 134.6242],
+  VU: [-17.7333, 168.3273], TO: [-21.1393, -175.2049], FM: [6.9248, 158.1611],
+  AS: [-14.2756, -170.7025], NU: [-19.0554, -169.918], NR: [-0.5477, 166.9209],
+  KI: [1.3382, 172.9716], TV: [-8.5211, 179.1983], PG: [-9.4438, 147.1803],
+  WS: [-13.8506, -171.7513],
+};
 
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.split(/\r?\n/).filter((l) => l.length > 0);
@@ -126,6 +148,14 @@ export function useClimateData() {
         }
         events.sort((a, b) => b.affected - a.affected);
 
+        const MAP_COUNTRIES: MapCountry[] = Object.entries(COORDS)
+          .map(([iso, [lat, lon]]): MapCountry | null => {
+            const series = ST_ANOM[countryName(iso)];
+            if (!series || !series.length) return null;
+            return { iso, name: countryName(iso), lat, lon, series };
+          })
+          .filter((c): c is MapCountry => c !== null);
+
         if (!cancelled) {
           setData({
             ST_ANOM,
@@ -138,6 +168,7 @@ export function useClimateData() {
             RAIN_ANOM: rainLatest.out,
             RAIN_YEAR: rainLatest.year,
             AFFECTED: events.slice(0, 5),
+            MAP_COUNTRIES,
           });
         }
       } catch (e) {

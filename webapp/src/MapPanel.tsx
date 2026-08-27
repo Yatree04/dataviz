@@ -1,204 +1,199 @@
 // src/MapPanel.tsx
-// The real coastline payoff — Digital Earth Pacific vector tiles via MapLibre GL JS.
-// Same tile source and layer names as the vanilla build's js/map.js, reimplemented
-// as a React component in this UI's visual language. Three modes share one map
-// instance: the year-scrubbed shoreline (beat 0's cold open), the erosion/accretion
-// rates choropleth (beat 5's payoff), and the Cyclone Winston marker (beat 6's coda).
+// The map, rebuilt on Highcharts Maps. The previous MapLibre + Digital Earth
+// Pacific vector-tile build kept failing silently in the browser (wrong/blocked
+// tile source) and was undebuggable without live network access. This version
+// uses the same pattern as Highcharts' own "population history by country" and
+// "lightning strikes" map demos: a world topology fetched once at runtime, one
+// bubble per country sized/coloured by real ST_ANOM, a year slider that restyles
+// the bubbles in place (no reload), and click-to-drill into a country's full
+// history — all real data, no coastline geometry we can't verify.
 
 import { useEffect, useRef, useState } from 'react';
-import type { AffectedEvent } from './useClimateData';
+import Highcharts from 'highcharts/highmaps';
+import type { AffectedEvent, MapCountry } from './useClimateData';
 import YearScrubber from './YearScrubber';
 
-declare const maplibregl: any;
+const YEAR_MIN = 1985;
+const YEAR_MAX = 2025;
 
-const TILEJSON_URL = 'https://tileserver.prod.digitalearthpacific.io/data/coastlines.json';
-const SOURCE_ID = 'dep-coastlines';
-const SHORELINE_SRC = 'shorelines_annual';
-const RATES_SRC = 'rates_of_change';
+const HEAT_3 = '#c1362f';
+const ACCRETE = '#2a78d6';
+const BORDER = '#e2e8f0';
+const INK = '#020817';
+const INK3 = '#9ca3af';
 
-const YEAR_MIN = 1999;
-const YEAR_MAX = 2023;
+type Mode = 'temperature' | 'winston';
 
-// A minimal self-contained style — no dependency on a third-party basemap
-// server (tiles.openfreemap.org previously). If that external style JSON
-// failed to load for any reason (down, CORS, rate limit), MapLibre rendered
-// nothing at all: no background, no coastline, just the panel's own CSS
-// background showing through. This style has nothing to fetch but our own
-// data source, so it can't fail the same way.
-const BASE_STYLE = {
-  version: 8 as const,
-  sources: {},
-  layers: [
-    { id: 'bg', type: 'background' as const, paint: { 'background-color': '#0a2540' } },
-  ],
-};
-
-function yearColor(year: number) {
-  const t = (year - YEAR_MIN) / (YEAR_MAX - YEAR_MIN);
-  const r = Math.round(202 + t * (232 - 202));
-  const g = Math.round(233 + t * (131 - 233));
-  const b = Math.round(255 + t * (58 - 255));
-  return `rgb(${r},${g},${b})`;
+function valueAtYear(series: [number, number][], year: number): number | null {
+  const hit = series.find(([y]) => y === year);
+  return hit ? hit[1] : null;
 }
 
-type Mode = 'coastline' | 'rates' | 'winston';
+function bubbleZ(anomaly: number) {
+  return 6 + Math.min(Math.abs(anomaly), 1.5) * 14;
+}
 
-export default function MapPanel({ winstonEvent }: { winstonEvent?: AffectedEvent }) {
+function bubbleData(countries: MapCountry[], year: number) {
+  return countries.map((c) => {
+    const v = valueAtYear(c.series, year) ?? 0;
+    return { lat: c.lat, lon: c.lon, z: bubbleZ(v), colorValue: v, name: c.name, custom: { iso: c.iso } };
+  });
+}
+
+export default function MapPanel({ countries, winstonEvent }: { countries: MapCountry[]; winstonEvent?: AffectedEvent }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const [mode, setMode] = useState<Mode>('coastline');
-  const [year, setYear] = useState(2023);
+  const chartRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
-  const [sourceError, setSourceError] = useState<string | null>(null);
-  const markerAdded = useRef(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>('temperature');
+  const [year, setYear] = useState(YEAR_MAX);
+  const [selectedIso, setSelectedIso] = useState<string | null>(null);
+  const setSelectedIsoRef = useRef(setSelectedIso);
+  setSelectedIsoRef.current = setSelectedIso;
 
-  // Init map once
+  // Build the chart once, after fetching the world topology.
   useEffect(() => {
-    if (!containerRef.current || typeof maplibregl === 'undefined') return;
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: BASE_STYLE as any,
-      center: [171.0, 7.1],
-      zoom: 9,
-      attributionControl: true,
-    });
-    mapRef.current = map;
+    let cancelled = false;
+    (async () => {
+      try {
+        const topology = await fetch('https://code.highcharts.com/mapdata/custom/world.topo.json')
+          .then((r) => {
+            if (!r.ok) throw new Error(`world topology fetch failed: ${r.status}`);
+            return r.json();
+          });
+        if (cancelled || !containerRef.current) return;
 
-    // Surface failures instead of a silent blank map — this is the thing
-    // that made the earlier bug invisible in the browser console.
-    map.on('error', (e: any) => {
-      console.error('MapLibre error:', e?.error || e);
-      if (e?.sourceId === SOURCE_ID || /coastlines\.json/.test(e?.error?.message || '')) {
-        setSourceError(e?.error?.message || 'Failed to load the coastline tile source.');
-      }
-    });
+        const winstonPoint = winstonEvent
+          ? [{
+              lat: -18.14, lon: 178.44, z: 22, colorValue: 0,
+              name: `Cyclone Winston · ${winstonEvent.country} ${winstonEvent.year}`,
+              custom: { affected: winstonEvent.affected },
+            }]
+          : [];
 
-    map.on('load', () => {
-      map.addSource(SOURCE_ID, { type: 'vector', url: TILEJSON_URL });
-
-      map.addLayer({
-        id: 'shoreline-bg', type: 'line', source: SOURCE_ID, 'source-layer': SHORELINE_SRC,
-        paint: { 'line-color': '#ccc', 'line-width': 1, 'line-opacity': 0.25 },
-      });
-      map.addLayer({
-        id: 'shoreline-active', type: 'line', source: SOURCE_ID, 'source-layer': SHORELINE_SRC,
-        filter: ['==', ['get', 'year'], 2023],
-        paint: {
-          'line-color': yearColor(2023), 'line-width': 2.5, 'line-opacity': 1,
-          'line-opacity-transition': { duration: 350, delay: 0 },
-        },
-      });
-      map.addLayer({
-        id: 'rates', type: 'circle', source: SOURCE_ID, 'source-layer': RATES_SRC,
-        layout: { visibility: 'none' },
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 12, 4],
-          'circle-color': [
-            'interpolate', ['linear'], ['get', 'rate_time'],
-            -5, '#c1362f', 0, '#f7f5ef', 5, '#2a78d6',
+        chartRef.current = Highcharts.mapChart(containerRef.current, {
+          chart: { backgroundColor: 'transparent', animation: false },
+          title: { text: undefined },
+          credits: { enabled: false },
+          accessibility: { enabled: false },
+          mapNavigation: { enabled: true, buttonOptions: { verticalAlign: 'bottom' } },
+          mapView: {
+            projection: { name: 'EqualEarth', rotation: [-180] },
+            center: [180, -8],
+            zoom: 2.6,
+          },
+          colorAxis: {
+            min: -1.3,
+            max: 1.3,
+            stops: [[0, ACCRETE], [0.5, '#f7f5ef'], [1, HEAT_3]] as any,
+            labels: { format: '{value:+.1f}°C' },
+          },
+          legend: { enabled: false },
+          series: [
+            {
+              type: 'map',
+              name: 'Pacific',
+              mapData: topology,
+              nullColor: '#eef2f6',
+              borderColor: '#cbd5e1',
+              borderWidth: 0.5,
+              enableMouseTracking: false,
+              showInLegend: false,
+            },
+            {
+              type: 'mapbubble',
+              id: 'temp-bubbles',
+              name: 'ST anomaly',
+              data: bubbleData(countries, YEAR_MAX),
+              minSize: 6,
+              maxSize: 26,
+              visible: true,
+              marker: { lineWidth: 1, lineColor: 'rgba(2,8,23,0.35)' },
+              point: {
+                events: {
+                  click: function (this: any) {
+                    setSelectedIsoRef.current(this.custom?.iso ?? null);
+                  },
+                },
+              },
+              tooltip: {
+                pointFormatter: function (this: any) {
+                  const sign = this.colorValue > 0 ? '+' : '';
+                  return `<b>${this.name}</b><br/>ST anomaly: ${sign}${this.colorValue.toFixed(2)}°C`;
+                },
+              },
+            } as any,
+            {
+              type: 'mapbubble',
+              id: 'winston-marker',
+              name: 'Cyclone Winston',
+              data: winstonPoint,
+              minSize: 22,
+              maxSize: 22,
+              color: HEAT_3,
+              visible: false,
+              marker: { lineWidth: 2, lineColor: '#fff' },
+              tooltip: {
+                pointFormatter: function (this: any) {
+                  return `<b>${this.name}</b><br/>${this.custom.affected.toLocaleString()} people affected`;
+                },
+              },
+            } as any,
           ],
-          'circle-opacity': 0.75,
-        },
-      });
+        });
 
-      // Diagnostic: the vector source can load successfully with zero
-      // matching features if the real tiles use different source-layer
-      // names than 'shorelines_annual' / 'rates_of_change' — that fails
-      // silently (no 'error' event), it just renders nothing. Check once
-      // the source has actually finished loading tiles at this view.
-      map.once('idle', () => {
-        const shorelineFeatures = map.querySourceFeatures(SOURCE_ID, { sourceLayer: SHORELINE_SRC });
-        if (shorelineFeatures.length === 0) {
-          const msg = `No features found in source-layer "${SHORELINE_SRC}" — the tile source loaded, but this layer name likely doesn't match the real data. Check the tile source's actual layer names.`;
-          console.warn(msg);
-          setSourceError(msg);
-        }
-      });
+        setReady(true);
+      } catch (e) {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e));
+      }
+    })();
 
-      map.on('click', 'rates', (e: any) => {
-        const f = e.features[0];
-        const rate = f.properties.rate_time;
-        new maplibregl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(`<strong>${rate > 0 ? 'Accreting' : 'Eroding'}</strong><br>${rate.toFixed(1)} m/yr`)
-          .addTo(map);
-      });
-      map.on('mouseenter', 'rates', () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', 'rates', () => { map.getCanvas().style.cursor = ''; });
-
-      setReady(true);
-    });
-
-    return () => map.remove();
+    return () => {
+      cancelled = true;
+      chartRef.current?.destroy();
+      chartRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // React to mode changes
+  // Year scrub — restyle the existing bubbles, no rebuild.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
+    const chart = chartRef.current;
+    if (!chart || !ready) return;
+    const series = chart.get('temp-bubbles');
+    if (!series) return;
+    (series as any).setData(bubbleData(countries, year), true, { duration: 400 });
+  }, [year, ready, countries]);
 
-    if (mode === 'coastline') {
-      map.setLayoutProperty('rates', 'visibility', 'none');
-      if (map.getLayer('shoreline-active')) {
-        map.setLayoutProperty('shoreline-active', 'visibility', 'visible');
-        map.setLayoutProperty('shoreline-bg', 'visibility', 'visible');
-      }
-      map.flyTo({ center: [171.0, 7.1], zoom: 11, duration: 1200 });
-    } else if (mode === 'rates') {
-      map.setLayoutProperty('rates', 'visibility', 'visible');
-      if (map.getLayer('shoreline-active')) {
-        map.setLayoutProperty('shoreline-active', 'visibility', 'none');
-        map.setLayoutProperty('shoreline-bg', 'visibility', 'none');
-      }
-      map.flyTo({ center: [170.0, 5.0], zoom: 5, duration: 1200 });
-    } else if (mode === 'winston') {
-      map.setLayoutProperty('rates', 'visibility', 'none');
-      if (map.getLayer('shoreline-active')) {
-        map.setLayoutProperty('shoreline-active', 'visibility', 'none');
-        map.setLayoutProperty('shoreline-bg', 'visibility', 'none');
-      }
-      map.flyTo({ center: [178.5, -17.7], zoom: 7, duration: 1200 });
-      if (!markerAdded.current && winstonEvent) {
-        markerAdded.current = true;
-        const el = document.createElement('div');
-        el.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#c1362f;border:2px solid #fff;box-shadow:0 0 0 5px rgba(193,54,47,0.3),0 0 0 10px rgba(193,54,47,0.12);';
-        new maplibregl.Marker({ element: el })
-          .setLngLat([178.5, -17.7])
-          .setPopup(new maplibregl.Popup().setHTML(
-            `<strong>Cyclone Winston, ${winstonEvent.country} ${winstonEvent.year}</strong><br>${winstonEvent.affected.toLocaleString()} people affected`
-          ))
-          .addTo(map);
-      }
+  // Mode toggle.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !ready) return;
+    const temp = chart.get('temp-bubbles') as any;
+    const winston = chart.get('winston-marker') as any;
+    temp?.setVisible(mode === 'temperature', false);
+    winston?.setVisible(mode === 'winston', false);
+    if (chart.mapView) {
+      if (mode === 'winston') chart.mapView.setView([178.4, -18.1], 6);
+      else chart.mapView.setView([180, -8], 2.6);
     }
-  }, [mode, ready, winstonEvent]);
+    chart.redraw();
+  }, [mode, ready]);
 
-  // Year scrub
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready || mode !== 'coastline') return;
-    if (!map.getLayer('shoreline-active')) return;
-    map.setFilter('shoreline-active', ['==', ['get', 'year'], year]);
-    map.setPaintProperty('shoreline-active', 'line-color', yearColor(year));
-  }, [year, ready, mode]);
-
-  const caption =
-    mode === 'coastline' ? 'Majuro Atoll, Marshall Islands · Landsat annual shorelines' :
-    mode === 'rates' ? 'Pacific Ocean · coastline erosion / accretion rates (m/yr)' :
-    'Fiji · Cyclone Winston, 2016';
+  const selected = countries.find((c) => c.iso === selectedIso);
 
   return (
     <div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {([
-          ['coastline', 'Coastline, 1999–2023'],
-          ['rates', 'Erosion / accretion'],
+          ['temperature', 'Temperature by year, 1985–2025'],
           ['winston', 'Cyclone Winston, 2016'],
         ] as [Mode, string][]).map(([m, label]) => (
           <button
             key={m}
             onClick={() => setMode(m)}
             className={`chip${mode === m ? ' active' : ''}`}
-            style={{ border: '1px solid var(--border)' }}
+            style={{ border: `1px solid ${BORDER}` }}
           >
             {label}
           </button>
@@ -207,39 +202,80 @@ export default function MapPanel({ winstonEvent }: { winstonEvent?: AffectedEven
 
       <div className="map-panel">
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-        <div className="map-caption">{caption}</div>
-        {mode === 'coastline' && <div className="map-year-badge">{year}</div>}
-        {sourceError && (
+        {mode === 'temperature' && <div className="map-year-badge">{year}</div>}
+        {loadError && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 24, background: 'rgba(10,37,64,0.92)', color: '#fff', textAlign: 'center',
           }}>
             <div style={{ maxWidth: 420 }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#f5c14e', marginBottom: 8 }}>
-                Coastline data didn't load
+                Map data didn't load
               </div>
-              <div style={{ fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}>{sourceError}</div>
+              <div style={{ fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}>{loadError}</div>
             </div>
           </div>
         )}
       </div>
 
-      {mode === 'coastline' && (
+      {mode === 'temperature' && (
         <div style={{ marginTop: 14 }}>
-          <YearScrubber min={YEAR_MIN} max={YEAR_MAX} value={year} onChange={setYear} tickEvery={4} />
+          <YearScrubber min={YEAR_MIN} max={YEAR_MAX} value={year} onChange={setYear} tickEvery={5} />
         </div>
       )}
 
-      {mode === 'rates' && (
-        <p style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 8 }}>
-          <span style={{ color: '#c1362f', fontWeight: 700 }}>Red</span> retreats ·{' '}
-          <span style={{ color: '#2a78d6', fontWeight: 700 }}>blue</span> builds. Click any point for its rate.
-        </p>
+      {selected && mode === 'temperature' && (
+        <CountryHistory country={selected} onClose={() => setSelectedIso(null)} />
       )}
 
       <p className="caption">
-        Digital Earth Pacific · Landsat annual shorelines 1999–2023 + rates_of_change layer (10.4M transects).
+        {mode === 'temperature'
+          ? "ST_ANOM · SPC Pacific Data Hub · one bubble per reporting country, sized and coloured by that year's land temperature anomaly. Click a bubble for its full history."
+          : 'Cyclone Winston, Fiji, 2016 · VC_DSR_AFFCT · SPC Pacific Data Hub.'}
       </p>
+    </div>
+  );
+}
+
+function CountryHistory({ country, onClose }: { country: MapCountry; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const chart = Highcharts.chart(ref.current, {
+      chart: {
+        type: 'line',
+        height: 160,
+        backgroundColor: 'transparent',
+        plotBorderColor: BORDER,
+        plotBorderWidth: 1,
+        plotBorderRadius: 5,
+      },
+      title: { text: undefined },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: { lineWidth: 0, tickLength: 0 },
+      yAxis: { title: { text: undefined }, labels: { format: '{value:+.1f}°C' }, gridLineWidth: 1 },
+      tooltip: { pointFormat: 'ST anomaly: <b>{point.y:+.2f}°C</b>' },
+      series: [{ type: 'line', name: country.name, data: country.series, color: INK, marker: { enabled: false } } as any],
+    });
+    return () => chart.destroy();
+  }, [country]);
+
+  const first = country.series[0][0];
+  const last = country.series[country.series.length - 1][0];
+
+  return (
+    <div style={{ marginTop: 14, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '12px 14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: INK }}>
+          {country.name} — ST anomaly, {first}–{last}
+        </span>
+        <button onClick={onClose} style={{ border: 'none', background: 'none', color: INK3, cursor: 'pointer', fontSize: 12 }}>
+          close ×
+        </button>
+      </div>
+      <div ref={ref} />
     </div>
   );
 }

@@ -1,12 +1,8 @@
 import { useRef, useState, useMemo, useEffect } from "react";
-import {
-  LineChart, Line, BarChart, Bar, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ReferenceLine, Cell,
-} from "recharts";
 import { useClimateData } from "./useClimateData";
 import { decadeMean, stripeColor } from "./utils";
 import MapPanel from "./MapPanel";
+import HChart from "./HChart";
 
 // ─── TOKENS ──────────────────────────────────────────────────────────────────
 const INK      = "#020817";
@@ -55,22 +51,17 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
-// ─── TOOLTIP ─────────────────────────────────────────────────────────────────
-function ChartTip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "8px 12px", fontSize: 11, fontFamily: "'Inter',sans-serif", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
-      <div style={{ color: INK3, marginBottom: 4 }}>{label}</div>
-      {payload.map((p: any, i: number) => (
-        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 2 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, flexShrink: 0, display: "inline-block" }} />
-          <span style={{ color: INK3 }}>{p.name}:</span>
-          <span style={{ color: INK2, fontWeight: 600 }}>{p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+// ─── SHARED TOOLTIP STYLE ─────────────────────────────────────────────────────
+// Mirrors the swatch-+-value row pattern from the Highcharts custom-tooltip
+// examples: a small coloured dash, the series name, the value.
+const HC_TOOLTIP = {
+  useHTML: true,
+  backgroundColor: "#ffffff",
+  borderColor: BORDER,
+  borderRadius: 4,
+  shadow: false,
+  style: { fontSize: "11px", fontFamily: "'Inter',sans-serif", color: INK2 },
+};
 
 // ─── WARMING STRIPES (built from the real annual regional series) ───────────
 function WarmingStripes({ series, fromYear }: { series: [number, number][]; fromYear: number }) {
@@ -345,19 +336,25 @@ export default function App() {
             <p style={{ fontSize: 11, color: INK3, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
               tCO₂e per capita, {GHG_YEAR} · SPC Pacific Data Hub
             </p>
-            <ResponsiveContainer width="100%" height={340}>
-              <BarChart data={ghgData} layout="vertical" margin={{ top: 0, right: 60, bottom: 0, left: 110 }} barCategoryGap="20%">
-                <CartesianGrid horizontal={false} stroke={BORDER} />
-                <XAxis type="number" tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="country" tick={{ fill: INK2, fontSize: 11 }} axisLine={false} tickLine={false} width={105} />
-                <Tooltip content={<ChartTip />} formatter={(v: any) => [`${v} tCO₂e`, "Emissions"]} />
-                <Bar dataKey="val" name="Emissions" radius={[0, 3, 3, 0]}>
-                  {ghgData.map((d, i) => (
-                    <Cell key={i} fill={d.val > 10 ? HEAT_3 : d.val > 3 ? HEAT_2 : d.val > 1 ? HEAT_1 : ACCRETE} fillOpacity={0.75} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <HChart
+              height={340}
+              options={{
+                chart: { type: "bar" },
+                xAxis: { type: "category", categories: ghgData.map((d) => d.country), lineWidth: 0, tickLength: 0, labels: { style: { fontSize: "11px", color: INK2 } } },
+                yAxis: { title: { text: undefined }, gridLineColor: BORDER, labels: { style: { fontSize: "10px", color: INK3 } } },
+                legend: { enabled: false },
+                tooltip: { ...HC_TOOLTIP, pointFormat: '<span style="color:{point.color}">●</span> {point.y} tCO₂e per capita' },
+                plotOptions: { bar: { borderRadius: 3, borderWidth: 0, pointPadding: 0.1, groupPadding: 0.1 } },
+                series: [{
+                  type: "bar",
+                  name: "Emissions",
+                  data: ghgData.map((d) => ({
+                    y: d.val,
+                    color: d.val > 10 ? HEAT_3 : d.val > 3 ? HEAT_2 : d.val > 1 ? HEAT_1 : ACCRETE,
+                  })),
+                }],
+              }}
+            />
             <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
               {ghgTop?.country} and {ghgSecond?.country} are industrial outliers. Colour: red = highest, blue = lowest.
             </p>
@@ -400,31 +397,25 @@ export default function App() {
               value={activeCountry}
               onChange={setTempCountry}
             />
-            <div style={{ display: "flex", gap: 20, fontSize: 11, color: INK3, marginBottom: 10, flexWrap: "wrap" }}>
-              <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                <span style={{ width: 20, height: 2, background: HEAT_2, display: "inline-block" }} /> Regional land (ST)
-              </span>
-              <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                <span style={{ width: 20, height: 2, background: ACCRETE, display: "inline-block", borderTop: "2px dashed " + ACCRETE }} /> Regional ocean (SST)
-              </span>
-              <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                <span style={{ width: 20, height: 2, background: INK, display: "inline-block" }} /> {activeCountry}
-              </span>
-            </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={tempData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke={BORDER} />
-                <XAxis dataKey="year" tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false}
-                  tickFormatter={v => `${v > 0 ? "+" : ""}${v}°C`} domain={["auto", "auto"]} />
-                <Tooltip content={<ChartTip />} />
-                <ReferenceLine y={0} stroke={BORDER} strokeWidth={1.5} />
-                <Line type="monotone" dataKey="Regional land" stroke={HEAT_2} strokeWidth={2} dot={false} name="Regional land" />
-                <Line type="monotone" dataKey="Regional ocean" stroke={ACCRETE} strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Regional ocean" />
-                <Line type="monotone" dataKey={activeCountry} stroke={INK} strokeWidth={1.5}
-                  dot={{ r: 3, fill: INK, strokeWidth: 0 }} name={activeCountry} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
+            <HChart
+              height={260}
+              options={{
+                chart: { type: "line" },
+                xAxis: { categories: tempData.map((d) => String(d.year)), lineWidth: 0, tickLength: 0, labels: { style: { fontSize: "10px", color: INK3 } } },
+                yAxis: {
+                  title: { text: undefined }, gridLineColor: BORDER,
+                  labels: { format: "{value:+.1f}°C", style: { fontSize: "10px", color: INK3 } },
+                  plotLines: [{ value: 0, color: BORDER, width: 1.5 }],
+                },
+                legend: { enabled: true, itemStyle: { fontSize: "11px", color: INK3, fontWeight: "400" } },
+                tooltip: { ...HC_TOOLTIP, shared: true, valueDecimals: 2, valueSuffix: "°C" },
+                series: [
+                  { type: "line", name: "Regional land", data: tempData.map((d) => d["Regional land"]), color: HEAT_2, lineWidth: 2, marker: { enabled: false } },
+                  { type: "line", name: "Regional ocean", data: tempData.map((d) => d["Regional ocean"]), color: ACCRETE, dashStyle: "ShortDash", lineWidth: 1.5, marker: { enabled: false } },
+                  { type: "line", name: activeCountry, data: tempData.map((d) => (d as any)[activeCountry] ?? null), color: INK, lineWidth: 1.5, marker: { enabled: true, radius: 3 }, connectNulls: true },
+                ],
+              }}
+            />
             <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
               ST_ANOM / SST_ANOM · SPC Pacific Data Hub · °C anomaly vs the 1850–1900 baseline mean. {ST_ANOM_REGIONAL[0][0]}–{stLatest[0]}.
             </p>
@@ -464,21 +455,29 @@ export default function App() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={seaData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-                <defs>
-                  <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={ACCRETE} stopOpacity={0.18} />
-                    <stop offset="100%" stopColor={ACCRETE} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke={BORDER} />
-                <XAxis dataKey="year" tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v > 0 ? "+" : ""}${v}m`} />
-                <Tooltip content={<ChartTip />} formatter={(v: any) => [`${v > 0 ? "+" : ""}${v}m`, `Anomaly vs ${seaFirst?.year}`]} />
-                <Area type="stepAfter" dataKey="value" name="Sea level anomaly" stroke={ACCRETE} fill="url(#seaG)" strokeWidth={2} dot={{ r: 3.5, fill: ACCRETE, strokeWidth: 0 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            <HChart
+              height={220}
+              options={{
+                chart: { type: "area" },
+                xAxis: { categories: seaData.map((d) => String(d.year)), lineWidth: 0, tickLength: 0, labels: { style: { fontSize: "10px", color: INK3 } } },
+                yAxis: { title: { text: undefined }, gridLineColor: BORDER, labels: { format: "{value:+.2f}m", style: { fontSize: "10px", color: INK3 } } },
+                legend: { enabled: false },
+                tooltip: { ...HC_TOOLTIP, valueDecimals: 2, valueSuffix: "m", headerFormat: `Anomaly vs ${seaFirst?.year}<br/>` },
+                series: [{
+                  type: "area",
+                  name: "Sea level anomaly",
+                  data: seaData.map((d) => d.value),
+                  step: "right",
+                  color: ACCRETE,
+                  lineWidth: 2,
+                  marker: { enabled: true, radius: 3.5 },
+                  fillColor: {
+                    linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                    stops: [[0, "rgba(42,120,214,0.18)"], [1, "rgba(42,120,214,0)"]],
+                  },
+                }],
+              }}
+            />
             <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
               SEA_LVL · SPC Pacific Data Hub · Regional mean · quantised 0.1m · {seaFirst?.year}–{seaLast?.year}.
             </p>
@@ -523,23 +522,35 @@ export default function App() {
             <p style={{ fontSize: 11, color: INK3, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
               Sea surface temperature anomaly vs. bleaching-stress threshold
             </p>
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={bleachData} margin={{ top: 20, right: 10, bottom: 0, left: 0 }}>
-                <defs>
-                  <linearGradient id="bleachG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={HEAT_1} stopOpacity={0.25} />
-                    <stop offset="100%" stopColor={HEAT_1} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke={BORDER} />
-                <XAxis dataKey="year" tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v > 0 ? "+" : ""}${v}°C`} domain={["auto", "auto"]} />
-                <Tooltip content={<ChartTip />} formatter={(v: any) => [`${v > 0 ? "+" : ""}${v}°C`, "SST anomaly"]} />
-                <ReferenceLine y={BLEACHING_THRESHOLD} stroke={HEAT_3} strokeDasharray="4 3"
-                  label={{ value: "bleaching-stress threshold", fill: HEAT_3, fontSize: 9, position: "insideTopLeft" }} />
-                <Area type="monotone" dataKey="value" name="SST anomaly" stroke={HEAT_1} fill="url(#bleachG)" strokeWidth={2} dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
+            <HChart
+              height={240}
+              options={{
+                chart: { type: "area" },
+                xAxis: { categories: bleachData.map((d) => String(d.year)), lineWidth: 0, tickLength: 0, labels: { style: { fontSize: "10px", color: INK3 } } },
+                yAxis: {
+                  title: { text: undefined }, gridLineColor: BORDER,
+                  labels: { format: "{value:+.1f}°C", style: { fontSize: "10px", color: INK3 } },
+                  plotLines: [{
+                    value: BLEACHING_THRESHOLD, color: HEAT_3, width: 1.5, dashStyle: "ShortDash", zIndex: 5,
+                    label: { text: "bleaching-stress threshold", style: { color: HEAT_3, fontSize: "9px" }, align: "left", x: 4, y: -4 },
+                  }],
+                },
+                legend: { enabled: false },
+                tooltip: { ...HC_TOOLTIP, valueDecimals: 2, valueSuffix: "°C" },
+                series: [{
+                  type: "area",
+                  name: "SST anomaly",
+                  data: bleachData.map((d) => d.value),
+                  color: HEAT_1,
+                  lineWidth: 2,
+                  marker: { enabled: false },
+                  fillColor: {
+                    linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                    stops: [[0, "rgba(245,193,78,0.25)"], [1, "rgba(245,193,78,0)"]],
+                  },
+                }],
+              }}
+            />
             <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
               SST_ANOM · SPC Pacific Data Hub. Cite: GCRMN Pacific Status Report 1980–2023, DOI 10.59387/WIUJ2936 ·
               Carlot et al. 2023 (<em>Sci. Reports</em>) · Ferrario et al. 2014 (97% wave energy dissipation).
@@ -618,20 +629,20 @@ export default function App() {
           <Reveal>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
               <div style={{ width: 24, height: 24, borderRadius: "50%", border: `1.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: INK2, flexShrink: 0 }}>⑤</div>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>Measured From Space — Coastline Retreat</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>Measured Across the Pacific — Country by Country</span>
             </div>
             <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(20px,3vw,28px)", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", color: INK, marginBottom: 16 }}>
-              You don't have to model this
+              Every country, every year, real numbers
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 20 }}>
-              Every transect on this map is a real satellite measurement. Drag the year slider to watch one atoll's
-              coastline move, 1999–2023. Switch to the erosion / accretion view to see the rate — measured, not
-              modelled — across the entire Pacific. Then find the place where the physics became a person.
+              Every bubble on this map is a real ST_ANOM reading. Drag the year slider to watch four decades of
+              warming move across the Pacific, 1985–2025 — bigger and redder means a hotter anomaly that year.
+              Click any country for its full measured history. Then find the place where the physics became a person.
             </p>
           </Reveal>
 
           <Reveal delay={0.1}>
-            <MapPanel winstonEvent={winston} />
+            <MapPanel countries={data.MAP_COUNTRIES} winstonEvent={winston} />
           </Reveal>
         </div>
       </section>
@@ -664,20 +675,26 @@ export default function App() {
             <p style={{ fontSize: 11, color: INK3, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
               Rainfall anomaly (mm), {RAIN_YEAR} · RAIN_ANOM · red = drying · blue = wetting
             </p>
-            <ResponsiveContainer width="100%" height={Math.max(220, rainData.length * 22)}>
-              <BarChart data={rainData} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 108 }} barCategoryGap="20%">
-                <CartesianGrid horizontal={false} stroke={BORDER} />
-                <XAxis type="number" tick={{ fill: INK3, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v > 0 ? "+" : ""}${v}mm`} />
-                <YAxis type="category" dataKey="country" tick={{ fill: INK2, fontSize: 11 }} axisLine={false} tickLine={false} width={103} />
-                <Tooltip content={<ChartTip />} formatter={(v: any) => [`${v > 0 ? "+" : ""}${v}mm`, "Anomaly"]} />
-                <ReferenceLine x={0} stroke={BORDER} strokeWidth={1.5} />
-                <Bar dataKey="mm" name="Anomaly" radius={[0, 3, 3, 0]}>
-                  {rainData.map((d, i) => (
-                    <Cell key={i} fill={d.mm < 0 ? HEAT_3 : ACCRETE} fillOpacity={0.75} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <HChart
+              height={Math.max(220, rainData.length * 22)}
+              options={{
+                chart: { type: "bar" },
+                xAxis: { type: "category", categories: rainData.map((d) => d.country), lineWidth: 0, tickLength: 0, labels: { style: { fontSize: "11px", color: INK2 } } },
+                yAxis: {
+                  title: { text: undefined }, gridLineColor: BORDER,
+                  labels: { format: "{value:+.0f}mm", style: { fontSize: "10px", color: INK3 } },
+                  plotLines: [{ value: 0, color: BORDER, width: 1.5 }],
+                },
+                legend: { enabled: false },
+                tooltip: { ...HC_TOOLTIP, pointFormat: '<span style="color:{point.color}">●</span> {point.y:+.0f}mm' },
+                plotOptions: { bar: { borderRadius: 3, borderWidth: 0, pointPadding: 0.1, groupPadding: 0.1 } },
+                series: [{
+                  type: "bar",
+                  name: "Anomaly",
+                  data: rainData.map((d) => ({ y: d.mm, color: d.mm < 0 ? HEAT_3 : ACCRETE })),
+                }],
+              }}
+            />
             <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
               RAIN_ANOM · SPC Pacific Data Hub · DF_CLIMATE_CHANGE. Texture, not headline finding.
             </p>
@@ -780,8 +797,9 @@ export default function App() {
               Indicators used: ST_ANOM, SST_ANOM, SEA_LVL, RAIN_ANOM, GHG_EMI_CAPITA, VC_DSR_AFFCT.
             </p>
             <p style={{ fontSize: 14, lineHeight: 1.8, color: INK3, marginBottom: 10 }}>
-              Coastline map: Digital Earth Pacific, Landsat annual shorelines (1999–2023) and the rates_of_change
-              layer (10.4M transects), served live via MapLibre GL JS.
+              Map: Highcharts Maps, world topology loaded at runtime, one bubble per reporting country sized and
+              coloured by that year's real ST_ANOM reading — no coastline geometry beyond what SPC actually reports
+              per country per year.
             </p>
             <p style={{ fontSize: 14, lineHeight: 1.8, color: INK3, marginBottom: 10 }}>
               Reef physics: Ferrario et al. 2014 (97% wave energy reduction by healthy reefs);
