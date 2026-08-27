@@ -275,7 +275,7 @@ function CountryHistory({ country, onClose }: { country: MapCountry; onClose: ()
           close ×
         </button>
       </div>
-      <div ref={ref} />
+      <div ref={ref} style={{ background: '#ffffff' }} />
     </div>
   );
 }
