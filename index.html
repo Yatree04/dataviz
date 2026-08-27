@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Line That Moves — Pacific Climate Cascade</title>
+  <meta name="description"
+    content="An interactive scrollytelling essay on the Pacific climate cascade: heat → water → reef → coast → life. Built for the Pacific DataViz Challenge 2026." />
+
+  <!-- Fonts preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- MapLibre CSS -->
+  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+
+  <!-- ── TOP NAV ──────────────────────────────────────────── -->
+  <nav class="site-nav" aria-label="Site navigation">
+    <a href="#" class="nav-back" aria-label="Back to top">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+      Back
+    </a>
+    <span class="nav-eyebrow">Pacific DataViz Challenge 2026 · Climate Change</span>
+  </nav>
+
+  <!-- ── SINGLE-COLUMN STORY ─────────────────────────────── -->
+  <div class="layout">
+    <main class="story" id="story">
+
+      <!-- ── HERO ────────────────────────────────────────── -->
+      <section class="hero">
+        <!-- p5.js animated wave background -->
+        <div id="hero-canvas" aria-hidden="true"></div>
+        <div class="hero__content">
+
+          <p class="hero__eyebrow">Pacific DataViz Challenge 2026 · Climate Change</p>
+          <h1 class="hero__title">The&nbsp;Line<br><em>That Moves</em></h1>
+          <p class="hero__lede">A coastline is being measured from space every year. In twenty-five years of satellite
+            data, it has moved. This is the story of why — told through the chain of events connecting a greenhouse gas
+            to a household that no longer has a yard.</p>
+          <p class="scroll-cue">Scroll to begin ↓</p>
+        </div>
+      </section>
+
+
+      <!-- ── BEAT 0: cold open — the coastline moves ──────── -->
+      <section class="step step--map" data-beat="0" id="beat-0">
+        <div class="narrative-card">
+          <span class="beat-label">The payoff, first</span>
+          <h2>This is a coastline. Watch it move.</h2>
+          <p>A real Pacific shoreline traced by satellite from 1999 to 2023.
+            <strong>Drag the timeline below</strong> to travel through time —
+            each position shows that year's measured coastline.
+          </p>
+          <p class="note">Coastline data: Digital Earth Pacific · Landsat annual shorelines, 1999–2023</p>
+        </div>
+        <!-- Inline map block -->
+        <div class="map-block breakout">
+          <div id="map"></div>
+          <div id="year-counter" class="year-counter">2000</div>
+          <div class="map-caption" id="map-caption">Majuro Atoll, Marshall Islands</div>
+        </div>
+        <!-- Optional: Choropleth geographic view -->
+        <h3 class="chart-title" style="margin-top:2rem;">Geographic Distribution</h3>
+        <div class="choropleth-container" id="choropleth-container"></div>
+        <!-- Year timeline widget — inited by JS on first scroll to beat-0 -->
+        <div id="timeline-container" class="timeline-container breakout"></div>
+      </section>
+
+      <!-- ── BEAT ①: emissions ───────────────────────────── -->
+      <section class="step step--chart" data-beat="1" id="beat-1">
+        <span class="beat-label">The input</span>
+        <h2>It begins with heat they barely added</h2>
+        <p>Every nation in this story contributes a negligible share of global greenhouse gas emissions. Yet the
+          emissions don't stay where they're made. Atmospheric heat is not a local phenomenon.</p>
+        <p>Note the internal range: Palau and New Caledonia are outliers with large industrial or tourism-driven
+          footprints. Most island nations emit under 4 tCO₂e per person — less than a transatlantic flight for a
+          European tourist.</p>
+        <p class="note note--bridge">But where does the trapped heat go? →</p>
+
+        <div class="chart-section breakout">
+          <h3 class="chart-title">GHG emissions per capita — Pacific nations</h3>
+          <div id="chart-emissions" class="chart"></div>
+        </div>
+      </section>
+
+      <!-- ── BEAT ②: temperature ─────────────────────────── -->
+      <section class="step step--chart" data-beat="2" id="beat-2">
+        <span class="beat-label">The heat store</span>
+        <h2>The ocean took the heat — 91% of it</h2>
+        <p>When carbon dioxide traps solar radiation, the energy has to go somewhere. Scientists have measured
+          where: <strong>91% enters the ocean.</strong> The rest goes into the land surface, ice, and atmosphere.
+        </p>
+        <p>The chart shows both signals — land surface temperature anomaly and sea surface temperature anomaly — for
+          a single country. Both are rising from the same baseline, but the ocean accumulates heat more slowly and
+          holds it longer.</p>
+
+        <!-- Country selector: pill-button style -->
+        <div class="country-selector" id="country-selector">
+          <span class="selector-label">Select a country</span>
+          <div class="country-pills" id="country-pills">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <div class="chart-section breakout">
+          <h3 class="chart-title">Land &amp; sea surface temperature anomaly (°C vs 1850–1900 mean)</h3>
+          <div id="chart-temperature" class="chart"></div>
+          <div class="warming-stripes-label">
+            <span class="stripe-cool">◼ Cooler</span>
+            <span class="stripe-warm">◼ Warmer</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── BEAT ③a: sea level ──────────────────────────── -->
+      <section class="step step--chart" data-beat="3a" id="beat-3a">
+        <span class="beat-label">Two consequences, one cause</span>
+        <h2>Warm water is bigger water</h2>
+        <p>Heat doesn't only melt ice. When water warms, its molecules move faster and spread further — the same
+          volume of water takes up more space. This <em>thermal expansion</em> accounts for roughly half of last
+          century's sea-level rise.</p>
+        <p>The Pacific has experienced a clear upward trend. The numbers are small in absolute metres — but for an
+          island nation whose highest point is four metres above sea level, every centimetre is a percentage of its
+          future.</p>
+        <blockquote class="honesty-note">
+          ⚠ Sea-level values in this dataset are reported at 0.1 m resolution and are shown as a regional mean. They
+          are not precise enough to compare individual countries.
+        </blockquote>
+
+        <div class="chart-section breakout">
+          <h3 class="chart-title">Sea level anomaly (m) — Pacific regional mean</h3>
+          <div id="chart-sealevel" class="chart"></div>
+        </div>
+      </section>
+
+      <!-- ── BEAT ③b: coral bleaching ────────────────────── -->
+      <section class="step step--chart" data-beat="3b" id="beat-3b">
+        <span class="beat-label">The seawall that lived</span>
+        <h2>The same heat empties the reef</h2>
+        <p>Coral is not a rock. It is an animal — a colony of tiny polyps living in a symbiotic relationship with
+          photosynthetic algae that live inside them. When water temperature rises even 1–2°C above a seasonal
+          limit, the coral expels its algae. It turns white. Without its food source, it starves.</p>
+        <p>The Pacific has lost an estimated 50% of living coral cover since the 1980s. The GCRMN Pacific Reports
+          document recurrent mass bleaching events aligned with the same SST anomaly peaks visible in the
+          temperature chart.</p>
+        <p>The shaded band marks the approximate SST anomaly threshold beyond which bleaching stress becomes likely.
+          This is a mechanism, not a model.</p>
+        <p class="note">GCRMN Status and Trends of Coral Reefs of the Pacific, 1980–2023 (DOI 10.59387/WIUJ2936) ·
+          USGS Mo'orea coral-cover time series</p>
+
+        <div class="chart-section breakout">
+          <h3 class="chart-title">Sea surface temp anomaly w/ bleaching-stress range</h3>
+          <div id="chart-bleaching" class="chart"></div>
+        </div>
+      </section>
+
+      <!-- ── BEAT ③c: rainfall ───────────────────────────── -->
+      <section class="step step--chart" data-beat="3c" id="beat-3c">
+        <span class="beat-label">Not just temperature</span>
+        <h2>Rain that once knew its season</h2>
+        <p>Rainfall, too, is shifting — but not in one direction. Some islands are drying; some are receiving more
+          rain. Neither outcome is safe when agricultural systems, water catchment, and infrastructure were built
+          around a pattern that no longer holds.</p>
+        <p>Nauru's rainfall anomaly shows the most extreme drying in the region. Tonga tends wetter. Fiji and others
+          vary year to year as cyclone tracks shift.</p>
+
+        <div class="chart-section breakout">
+          <h3 class="chart-title">Rainfall anomaly (mm) — most recent year, per country</h3>
+          <div id="chart-rainfall" class="chart"></div>
+        </div>
+      </section>
+
+      <!-- ── BEAT ④: causal hinge ────────────────────────── -->
+      <section class="step step--pivot" data-beat="4" id="beat-4">
+        <div class="pivot-card">
+          <span class="beat-label">The mechanism</span>
+          <h2>So the waves arrive unbroken</h2>
+          <div class="pivot-body">
+            <p>Water has risen. The reef is dying or dead. These are two separate consequences of the same heat — but
+              they combine into something worse than either alone.</p>
+            <p>A healthy coral reef dissipates <strong>97% of a wave's energy</strong> before it reaches the shore. The
+              complex structures — branches, plates, ridges — create turbulence that extracts kinetic energy from
+              breaking waves.</p>
+            <p>When reef complexity drops by 50%, the mathematical relationship is not linear. Extreme-wave events
+              become <strong>more than 50 times more frequent</strong> at the shore.</p>
+            <p>That is the causal hinge: warm water + dead reef = unbroken waves + higher water. The coast is now open
+              to forces it was never meant to absorb alone.</p>
+          </div>
+          <p class="pivot-cite">Carlot et al. 2023, <em>Scientific Reports</em> (Mo'orea) · Ferrario et al. 2014 (97%
+            energy dissipation)</p>
+        </div>
+      </section>
+
+      <!-- ── BEAT ⑤: measured retreat — MAP PAYOFF ─────── -->
+      <section class="step step--map" data-beat="5" id="beat-5">
+        <span class="beat-label">The measurement</span>
+        <h2>You don't have to model this</h2>
+        <p>Every transect on this map is a real measurement — metres of coastline gained or lost per year, from
+          satellite data across the entire Pacific. <span class="map-key map-key--erode">Red</span> retreats. <span
+            class="map-key map-key--accrete">Blue</span> builds.</p>
+        <p>Click any point to see the rate at that transect.</p>
+        <p class="note">Digital Earth Pacific · rates_of_change layer, 10.4 million transects, 2023</p>
+      </section>
+
+      <!-- ── BEAT ⑥: coda — a displaced life ──────────── -->
+      <section class="step step--map" data-beat="6" id="beat-6">
+        <div class="narrative-card narrative-card--final">
+          <span class="beat-label">The physics, finally, is a person</span>
+          <h2>The line is where a home was</h2>
+          <p>Cyclone Winston made landfall in Fiji on 20 February 2016 — the most powerful tropical cyclone ever
+            recorded in the Southern Hemisphere at the time of landfall.</p>
+          <p class="stat"><strong>633,584 people</strong> were directly affected.</p>
+          <p>Every mechanism described above — warmer seas feeding cyclone intensity, dead reefs offering no wave brake,
+            raised water extending inland storm surge — converged in that one event.</p>
+          <p class="note">Source: SPC Pacific Data Hub · VC_DSR_AFFCT indicator · verified single-event record</p>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- /.layout -->
+
+  <!-- ── FOOTER ──────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <h3>Data &amp; methodology</h3>
+      <div class="footer-grid">
+        <div>
+          <h4>Climate indicators</h4>
+          <p>SPC Pacific Data Hub · DF_CLIMATE_CHANGE dataset (ST_ANOM, SST_ANOM, SEA_LVL, RAIN_ANOM, GHG_EMI_CAPITA).
+            Raw CSVs parsed in-browser; no pre-baked JSON.</p>
+        </div>
+        <div>
+          <h4>Disaster data</h4>
+          <p>SPC · VC_DSR_AFFCT indicator only. Other affected-persons indicators in the file mix units (persons with
+            economic loss in USD) and are not used here.</p>
+        </div>
+        <div>
+          <h4>Coastline</h4>
+          <p>Digital Earth Pacific · Landsat annual shorelines 1999–2023 + rates_of_change layer (10.4 M transects).
+            Served via <a href="https://digitalearthpacific.org" target="_blank"
+              rel="noopener">digitalearthpacific.org</a>.</p>
+        </div>
+        <div>
+          <h4>Coral</h4>
+          <p>GCRMN Status and Trends of Coral Reefs of the Pacific, 1980–2023 (DOI 10.59387/WIUJ2936). Bleaching
+            mechanism: Carlot et al. 2023 (<em>Sci. Reports</em>), Ferrario et al. 2014. USGS Mo'orea coral-cover
+            series.</p>
+        </div>
+      </div>
+      <p class="footer-honesty">Sea-level values are reported at 0.1 m resolution and shown as a regional trend only.
+        The coral beat references a site-level dataset (Mo'orea) + Pacific-wide GCRMN trend — not per-country coral
+        data. All interpolations are flagged in context.</p>
+      <p class="footer-credit">Pacific DataViz Challenge 2026 · <em>The Line That Moves</em></p>
+    </div>
+  </footer>
+
+  <!-- ── LIBS ─────────────────────────────────────────────── -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+
+  <script type="module" src="js/main.js?v=5"></script>
+
+
+
+
+</body>
+
+</html>
