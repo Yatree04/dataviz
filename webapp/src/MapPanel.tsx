@@ -1,12 +1,13 @@
 // src/MapPanel.tsx
-// The map, rebuilt on Highcharts Maps. The previous MapLibre + Digital Earth
-// Pacific vector-tile build kept failing silently in the browser (wrong/blocked
-// tile source) and was undebuggable without live network access. This version
-// uses the same pattern as Highcharts' own "population history by country" and
-// "lightning strikes" map demos: a world topology fetched once at runtime, one
-// bubble per country sized/coloured by real ST_ANOM, a year slider that restyles
-// the bubbles in place (no reload), and click-to-drill into a country's full
-// history — all real data, no coastline geometry we can't verify.
+// The map, rebuilt on Highcharts Maps as a full-bleed centerpiece rather than a
+// boxed panel — one bubble per country, sized/coloured by real ST_ANOM, a year
+// slider that restyles the bubbles in place, and double-click-to-zoom into a
+// country for a real per-country reading: its full temperature history, GHG,
+// rainfall, and any recorded disaster-affected-people events. No literal
+// coastline geometry here yet — Digital Earth Pacific's own tile server proved
+// unreachable/unverifiable from this build environment; this stays honest about
+// what it shows (real per-country annual readings) rather than approximating
+// coastline shift with invented geometry.
 
 import { useEffect, useRef, useState } from 'react';
 import Highcharts from 'highcharts/highmaps';
@@ -16,10 +17,12 @@ import YearScrubber from './YearScrubber';
 const YEAR_MIN = 1985;
 const YEAR_MAX = 2025;
 
+const HEAT_2 = '#e8833a';
 const HEAT_3 = '#c1362f';
 const ACCRETE = '#2a78d6';
 const BORDER = '#e2e8f0';
 const INK = '#020817';
+const INK2 = '#1f2937';
 const INK3 = '#9ca3af';
 
 type Mode = 'temperature' | 'winston';
@@ -40,7 +43,23 @@ function bubbleData(countries: MapCountry[], year: number) {
   });
 }
 
-export default function MapPanel({ countries, winstonEvent }: { countries: MapCountry[]; winstonEvent?: AffectedEvent }) {
+export default function MapPanel({
+  countries,
+  ghg,
+  ghgYear,
+  rainAnom,
+  rainYear,
+  affected,
+  winstonEvent,
+}: {
+  countries: MapCountry[];
+  ghg: Record<string, number>;
+  ghgYear: number;
+  rainAnom: Record<string, number>;
+  rainYear: number;
+  affected: AffectedEvent[];
+  winstonEvent?: AffectedEvent;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
@@ -48,8 +67,17 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
   const [mode, setMode] = useState<Mode>('temperature');
   const [year, setYear] = useState(YEAR_MAX);
   const [selectedIso, setSelectedIso] = useState<string | null>(null);
-  const setSelectedIsoRef = useRef(setSelectedIso);
-  setSelectedIsoRef.current = setSelectedIso;
+
+  // Refs so the Highcharts point-click closure always sees current values
+  // without rebuilding the chart.
+  const clickTrack = useRef<{ iso: string | null; time: number }>({ iso: null, time: 0 });
+  const openCountryRef = useRef<(iso: string) => void>(() => {});
+  openCountryRef.current = (iso: string) => {
+    setSelectedIso(iso);
+    const country = countries.find((c) => c.iso === iso);
+    const chart = chartRef.current;
+    if (country && chart?.mapView) chart.mapView.setView([country.lon, country.lat], 6.2);
+  };
 
   // Build the chart once, after fetching the world topology.
   useEffect(() => {
@@ -86,7 +114,7 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
             min: -1.3,
             max: 1.3,
             stops: [[0, ACCRETE], [0.5, '#f7f5ef'], [1, HEAT_3]] as any,
-            labels: { format: '{value:+.1f}°C' },
+            labels: { format: '{value:+.1f}°C', style: { color: INK2 } },
           },
           legend: { enabled: false },
           series: [
@@ -108,18 +136,30 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
               minSize: 6,
               maxSize: 26,
               visible: true,
+              cursor: 'pointer',
               marker: { lineWidth: 1, lineColor: 'rgba(2,8,23,0.35)' },
               point: {
                 events: {
+                  // Highcharts point events don't include a native dblclick —
+                  // detect two clicks on the same point within 400ms instead.
                   click: function (this: any) {
-                    setSelectedIsoRef.current(this.custom?.iso ?? null);
+                    const iso = this.custom?.iso;
+                    if (!iso) return;
+                    const now = Date.now();
+                    const last = clickTrack.current;
+                    if (last.iso === iso && now - last.time < 400) {
+                      openCountryRef.current(iso);
+                      clickTrack.current = { iso: null, time: 0 };
+                    } else {
+                      clickTrack.current = { iso, time: now };
+                    }
                   },
                 },
               },
               tooltip: {
                 pointFormatter: function (this: any) {
                   const sign = this.colorValue > 0 ? '+' : '';
-                  return `<b>${this.name}</b><br/>ST anomaly: ${sign}${this.colorValue.toFixed(2)}°C`;
+                  return `<b>${this.name}</b><br/>ST anomaly: ${sign}${this.colorValue.toFixed(2)}°C<br/><em style="opacity:0.7">double-click to zoom in</em>`;
                 },
               },
             } as any,
@@ -173,6 +213,7 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
     const winston = chart.get('winston-marker') as any;
     temp?.setVisible(mode === 'temperature', false);
     winston?.setVisible(mode === 'winston', false);
+    setSelectedIso(null);
     if (chart.mapView) {
       if (mode === 'winston') chart.mapView.setView([178.4, -18.1], 6);
       else chart.mapView.setView([180, -8], 2.6);
@@ -181,6 +222,12 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
   }, [mode, ready]);
 
   const selected = countries.find((c) => c.iso === selectedIso);
+
+  const closeCountry = () => {
+    setSelectedIso(null);
+    const chart = chartRef.current;
+    if (chart?.mapView) chart.mapView.setView([180, -8], 2.6);
+  };
 
   return (
     <div>
@@ -216,6 +263,19 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
             </div>
           </div>
         )}
+
+        {/* double-click drill-down panel */}
+        {selected && mode === 'temperature' && (
+          <CountryPanel
+            country={selected}
+            ghg={ghg[selected.name]}
+            ghgYear={ghgYear}
+            rain={rainAnom[selected.name]}
+            rainYear={rainYear}
+            events={affected.filter((e) => e.country === selected.name)}
+            onClose={closeCountry}
+          />
+        )}
       </div>
 
       {mode === 'temperature' && (
@@ -224,20 +284,26 @@ export default function MapPanel({ countries, winstonEvent }: { countries: MapCo
         </div>
       )}
 
-      {selected && mode === 'temperature' && (
-        <CountryHistory country={selected} onClose={() => setSelectedIso(null)} />
-      )}
-
       <p className="caption">
         {mode === 'temperature'
-          ? "ST_ANOM · SPC Pacific Data Hub · one bubble per reporting country, sized and coloured by that year's land temperature anomaly. Click a bubble for its full history."
+          ? "ST_ANOM · SPC Pacific Data Hub · one bubble per reporting country, sized and coloured by that year's land temperature anomaly. Double-click a bubble to zoom in and read its full record."
           : 'Cyclone Winston, Fiji, 2016 · VC_DSR_AFFCT · SPC Pacific Data Hub.'}
       </p>
     </div>
   );
 }
 
-function CountryHistory({ country, onClose }: { country: MapCountry; onClose: () => void }) {
+function CountryPanel({
+  country, ghg, ghgYear, rain, rainYear, events, onClose,
+}: {
+  country: MapCountry;
+  ghg?: number;
+  ghgYear: number;
+  rain?: number;
+  rainYear: number;
+  events: AffectedEvent[];
+  onClose: () => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -245,37 +311,72 @@ function CountryHistory({ country, onClose }: { country: MapCountry; onClose: ()
     const chart = Highcharts.chart(ref.current, {
       chart: {
         type: 'line',
-        height: 160,
+        height: 140,
         backgroundColor: '#ffffff',
-        plotBorderColor: BORDER,
-        plotBorderWidth: 1,
-        plotBorderRadius: 5,
       },
       title: { text: undefined },
       credits: { enabled: false },
       legend: { enabled: false },
-      xAxis: { lineWidth: 0, tickLength: 0 },
-      yAxis: { title: { text: undefined }, labels: { format: '{value:+.1f}°C' }, gridLineWidth: 1 },
+      xAxis: { lineWidth: 0, tickLength: 0, labels: { style: { fontSize: '10px', color: INK3 } } },
+      yAxis: { title: { text: undefined }, labels: { format: '{value:+.1f}°C', style: { fontSize: '10px', color: INK3 } }, gridLineWidth: 1, gridLineColor: BORDER },
       tooltip: { pointFormat: 'ST anomaly: <b>{point.y:+.2f}°C</b>' },
-      series: [{ type: 'line', name: country.name, data: country.series, color: INK, marker: { enabled: false } } as any],
+      series: [{ type: 'line', name: country.name, data: country.series, color: HEAT_2, lineWidth: 2, marker: { enabled: false } } as any],
     });
     return () => chart.destroy();
   }, [country]);
 
-  const first = country.series[0][0];
-  const last = country.series[country.series.length - 1][0];
+  const first = country.series[0];
+  const last = country.series[country.series.length - 1];
+  const warmed = +(last[1] - first[1]).toFixed(2);
 
   return (
-    <div style={{ marginTop: 14, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '12px 14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: INK }}>
-          {country.name} — ST anomaly, {first}–{last}
-        </span>
-        <button onClick={onClose} style={{ border: 'none', background: 'none', color: INK3, cursor: 'pointer', fontSize: 12 }}>
-          close ×
-        </button>
+    <div className="country-panel">
+      <div className="country-panel__head">
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: INK3 }}>
+            Country record
+          </div>
+          <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 24, fontWeight: 700, color: INK, margin: '2px 0 0' }}>
+            {country.name}
+          </h3>
+        </div>
+        <button onClick={onClose} className="country-panel__close" aria-label="Close and return to the Pacific view">×</button>
       </div>
-      <div ref={ref} style={{ background: '#ffffff' }} />
+
+      <p style={{ fontSize: 12.5, color: INK2, lineHeight: 1.6, margin: '10px 0 14px' }}>
+        Land temperature has moved from <strong>{first[1] > 0 ? '+' : ''}{first[1].toFixed(2)}°C</strong> in {first[0]} to{' '}
+        <strong>{last[1] > 0 ? '+' : ''}{last[1].toFixed(2)}°C</strong> in {last[0]} —
+        a {warmed >= 0 ? 'rise' : 'fall'} of <strong>{Math.abs(warmed).toFixed(2)}°C</strong>.
+      </p>
+
+      <div ref={ref} />
+
+      <div className="country-panel__stats">
+        <div>
+          <div className="country-panel__stat-label">GHG emissions{ghg !== undefined ? `, ${ghgYear}` : ''}</div>
+          <div className="country-panel__stat-value">{ghg !== undefined ? `${ghg.toFixed(1)} tCO₂e/cap` : 'no data'}</div>
+        </div>
+        <div>
+          <div className="country-panel__stat-label">Rainfall anomaly{rain !== undefined ? `, ${rainYear}` : ''}</div>
+          <div className="country-panel__stat-value">{rain !== undefined ? `${rain > 0 ? '+' : ''}${rain.toFixed(0)}mm` : 'no data'}</div>
+        </div>
+      </div>
+
+      {events.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div className="country-panel__stat-label" style={{ marginBottom: 6 }}>Recorded disaster events · VC_DSR_AFFCT</div>
+          {events.slice(0, 4).map((e) => (
+            <div key={`${e.iso}-${e.year}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: INK2, padding: '3px 0' }}>
+              <span>{e.year}</span>
+              <span style={{ fontWeight: 600 }}>{e.affected.toLocaleString()} affected</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="caption" style={{ marginTop: 12 }}>
+        ST_ANOM {first[0]}–{last[0]} · SPC Pacific Data Hub.
+      </p>
     </div>
   );
 }

@@ -637,12 +637,21 @@ export default function App() {
             <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 20 }}>
               Every bubble on this map is a real ST_ANOM reading. Drag the year slider to watch four decades of
               warming move across the Pacific, 1985–2025 — bigger and redder means a hotter anomaly that year.
-              Click any country for its full measured history. Then find the place where the physics became a person.
+              Double-click any country to zoom in and read its full measured record: temperature history,
+              emissions, rainfall, and any disasters recorded against it.
             </p>
           </Reveal>
 
           <Reveal delay={0.1}>
-            <MapPanel countries={data.MAP_COUNTRIES} winstonEvent={winston} />
+            <MapPanel
+              countries={data.MAP_COUNTRIES}
+              ghg={GHG}
+              ghgYear={GHG_YEAR}
+              rainAnom={RAIN_ANOM}
+              rainYear={RAIN_YEAR}
+              affected={AFFECTED}
+              winstonEvent={winston}
+            />
           </Reveal>
         </div>
       </section>
@@ -744,7 +753,7 @@ export default function App() {
               VC_DSR_AFFCT · the five largest verified single-year events · SPC Pacific Data Hub
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {AFFECTED.map((d, i) => (
+              {AFFECTED.slice(0, 5).map((d, i) => (
                 <div key={`${d.iso}-${d.year}`} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ width: 110, fontSize: 12, color: INK2, textAlign: "right", flexShrink: 0 }}>
                     {d.country} <span style={{ color: INK3, fontWeight: 400 }}>{d.year}</span>

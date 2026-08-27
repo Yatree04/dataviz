@@ -167,7 +167,7 @@ export function useClimateData() {
             GHG_YEAR: ghgLatest.year,
             RAIN_ANOM: rainLatest.out,
             RAIN_YEAR: rainLatest.year,
-            AFFECTED: events.slice(0, 5),
+            AFFECTED: events.slice(0, 30),
             MAP_COUNTRIES,
           });
         }
