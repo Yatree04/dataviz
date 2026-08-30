@@ -1,0 +1,286 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Vollkorn:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
+
+:root {
+  /* Editorial Palette from Figma */
+  --bg-main: #fcfcfc;
+  --text-dark: #111111;
+  --text-mid: #4a4a4a;
+  --text-light: #888888;
+  --accent-orange: #e56a31;
+  --border-color: #e5e5e5;
+  --callout-bg: #f9f9f9;
+
+  --font-serif: 'Vollkorn', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --max-width-article: 680px;
+  --max-width-chart: 840px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-main);
+  color: var(--text-dark);
+  line-height: 1.6;
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Nav */
+.top-nav {
+  max-width: var(--max-width-chart);
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eyebrow {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+}
+
+.nav-right {
+  color: var(--text-mid);
+}
+
+/* Container */
+.article-container {
+  padding-bottom: 6rem;
+}
+
+/* Hero */
+.hero {
+  max-width: var(--max-width-article);
+  margin: 5rem auto;
+  padding: 0 1rem;
+}
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.5rem;
+}
+
+.hero-italic {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--accent-orange);
+}
+
+.hero-lead {
+  font-size: 1.15rem;
+  color: var(--text-mid);
+  max-width: 600px;
+  margin-bottom: 3rem;
+}
+
+.hero-chart-wrapper {
+  max-width: var(--max-width-chart);
+  margin: 3rem auto 0;
+  height: 80px;
+  background: repeating-linear-gradient(90deg, #dce4ed, #dce4ed 2px, #fcfcfc 2px, #fcfcfc 4px);
+}
+
+/* Sections */
+.beat {
+  max-width: var(--max-width-article);
+  margin: 0 auto 5rem;
+  padding: 0 1rem;
+}
+
+.beat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.beat-number {
+  background-color: #eee;
+  color: #333;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9999px;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+}
+
+.beat-title-kicker {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+}
+
+.beat h2 {
+  font-family: var(--font-sans);
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.beat p {
+  color: var(--text-mid);
+  margin-bottom: 1.2rem;
+}
+
+/* Callout */
+.honesty-callout {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background-color: var(--callout-bg);
+  border-left: 3px solid var(--accent-orange);
+}
+
+.honesty-callout p {
+  margin: 0;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text-mid);
+}
+
+.honesty-callout code {
+  font-family: monospace;
+  background: #eaeaea;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-style: normal;
+}
+
+/* Charts */
+.chart-container {
+  max-width: var(--max-width-chart);
+  margin: 3rem auto;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 350px;
+  background: #f1f3f5;
+  /* placeholder */
+}
+
+.caption,
+.citations {
+  font-size: 0.8rem !important;
+  color: var(--text-light) !important;
+  text-align: center;
+  margin-top: -1.5rem;
+  margin-bottom: 2.5rem !important;
+}
+
+.coda {
+  margin-top: 5rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.coda p {
+  font-size: 1.15rem;
+  font-family: var(--font-serif);
+  line-height: 1.7;
+}
+
+/* Footer / Ledger */
+#footer {
+  background-color: #111;
+  color: #ccc;
+  padding: 5rem 1rem;
+}
+
+.footer-content {
+  max-width: var(--max-width-article);
+  margin: 0 auto;
+}
+
+.footer-sources h3 {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 2rem;
+}
+
+.data-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 3rem;
+}
+
+.data-ledger th,
+.data-ledger td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #333;
+  text-align: left;
+}
+
+.data-ledger th {
+  color: #888;
+  font-weight: 500;
+}
+
+.data-ledger code {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.null-result {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 4px;
+}
+
+.null-result h4 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.null-result p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.footer-meta {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid #333;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.footer-meta strong {
+  color: #aaa;
+}
+
+@media (max-width: 860px) {
+  .chart-container {
+    width: 100%;
+    left: 0;
+    transform: none;
+    padding: 0 1rem;
+  }
+}
+
+
+Stop Agent
