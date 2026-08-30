@@ -15,7 +15,23 @@ const HEAT_2   = "#e8833a";
 const HEAT_3   = "#c1362f";
 const ACCRETE  = "#2a78d6";
 
-const BLEACHING_THRESHOLD = 1.0; // °C SST anomaly — see beat 3b copy for citation
+// Baselines taken verbatim from the SPC indicator metadata (NOAAGlobalTemp
+// v6.0.0). Declared once so copy and axis label cannot drift apart.
+const BASELINE_TEMP = "1971–2000";
+
+// Observed global mass bleaching events, as listed in the GCRMN Pacific report.
+// These replace the "+1 °C bleaching-stress threshold" line an earlier version
+// drew: bleaching stress is Degree Heating Weeks accumulated above a site's
+// Maximum Monthly Mean — a local, seasonal-peak quantity — while this chart
+// shows an annual mean anomaly. An annual mean averages away exactly the summer
+// peak that kills coral, so no horizontal line on this axis can represent a
+// bleaching threshold. Observed event years are recorded fact instead.
+const BLEACHING_EVENTS = [
+  { start: 1998, end: 1998, label: "1st global event" },
+  { start: 2010, end: 2010, label: "2nd global event" },
+  { start: 2014, end: 2017, label: "3rd global event" },
+  { start: 2023, end: 2024, label: "4th global event" },
+];
 
 // ─── INTERSECTION OBSERVER HOOK ──────────────────────────────────────────────
 // Shared by Reveal and WarmingStripes — fires onEnter() once, the first time
@@ -189,13 +205,14 @@ export default function App() {
   const activeCountry = ST_ANOM[tempCountry] ? tempCountry : countries[0];
 
   // temperature chart data
+  // Only the regional ST_ANOM mean is plotted — SST_ANOM is not a second finding
+  // (r = 0.96–0.99 against ST_ANOM, mean difference below the 0.1 °C resolution).
+  // SST_ANOM is still used on its own in the coral beat below.
   const tempData = ST_ANOM_REGIONAL.map(([year, st]) => {
-    const sst = SST_ANOM_REGIONAL.find(([y]) => y === year)?.[1] ?? st;
     const country = (ST_ANOM[activeCountry] ?? []).find(([y]) => y === year)?.[1];
     return {
       year,
       "Regional land": +st.toFixed(2),
-      "Regional ocean": +sst.toFixed(2),
       [activeCountry]: country !== undefined ? +country.toFixed(2) : undefined,
     };
   });
@@ -380,15 +397,21 @@ export default function App() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>The Engine Room — Ocean &amp; Land Heat</span>
             </div>
             <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(20px,3vw,28px)", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", color: INK, marginBottom: 16 }}>
-              Land temperature and sea surface temperature have risen in lock-step since the 1980s
+              The Pacific surface has warmed steadily since the 1980s
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-              Both ST_ANOM (surface/land) and SST_ANOM (sea surface) from the SPC Pacific Data Hub
-              show the same monotonic rise: from around{" "}
+              ST_ANOM from the SPC Pacific Data Hub shows a monotonic rise: from around{" "}
               <strong style={{ color: INK }}>{st1950s !== null ? `${st1950s > 0 ? "+" : ""}${st1950s.toFixed(2)}°C` : "—"}</strong> in
               the 1950s to <strong style={{ color: INK }}>{st2020s !== null ? `${st2020s > 0 ? "+" : ""}${st2020s.toFixed(2)}°C` : "—"}</strong> in
               the 2020s. Select a country to overlay its own anomaly on the regional mean.
             </p>
+            <div style={{ background: BG_SUB, borderLeft: `3px solid ${BORDER}`, padding: "12px 16px", borderRadius: "0 3px 3px 0", fontSize: 12, color: INK3, lineHeight: 1.7, marginBottom: 20 }}>
+              <strong style={{ color: INK2 }}>Why only one regional line:</strong> an earlier version plotted land
+              (ST_ANOM) against sea surface (SST_ANOM) as though they were two findings. They correlate at r = 0.96–0.99
+              with a mean difference below the data's own 0.1 °C rounding step — for Fiji they are identical in 61% of
+              years. Over atoll EEZs the land component shares grid cells with the ocean field and is not an independent
+              land measurement. They are the same line, so only one is drawn.
+            </div>
           </Reveal>
 
           <Reveal delay={0.1}>
@@ -410,14 +433,13 @@ export default function App() {
                 legend: { enabled: true, itemStyle: { fontSize: "11px", color: INK3, fontWeight: "400" } },
                 tooltip: { ...HC_TOOLTIP, shared: true, valueDecimals: 2, valueSuffix: "°C" },
                 series: [
-                  { type: "line", name: "Regional land", data: tempData.map((d) => d["Regional land"]), color: HEAT_2, lineWidth: 2, marker: { enabled: false } },
-                  { type: "line", name: "Regional ocean", data: tempData.map((d) => d["Regional ocean"]), color: ACCRETE, dashStyle: "ShortDash", lineWidth: 1.5, marker: { enabled: false } },
+                  { type: "line", name: "Pacific regional mean", data: tempData.map((d) => d["Regional land"]), color: HEAT_2, lineWidth: 2, marker: { enabled: false } },
                   { type: "line", name: activeCountry, data: tempData.map((d) => (d as any)[activeCountry] ?? null), color: INK, lineWidth: 1.5, marker: { enabled: true, radius: 3 }, connectNulls: true },
                 ],
               }}
             />
             <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
-              ST_ANOM / SST_ANOM · SPC Pacific Data Hub · °C anomaly vs the 1850–1900 baseline mean. {ST_ANOM_REGIONAL[0][0]}–{stLatest[0]}.
+              ST_ANOM · SPC Pacific Data Hub · °C anomaly vs the {BASELINE_TEMP} baseline (NOAAGlobalTemp v6.0.0). {ST_ANOM_REGIONAL[0][0]}–{stLatest[0]}.
             </p>
           </Reveal>
 
@@ -503,37 +525,54 @@ export default function App() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>Coral Bleaches — The Seawall Dies</span>
             </div>
             <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(20px,3vw,28px)", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", color: INK, marginBottom: 16 }}>
-              Coral reefs absorb 97% of incoming wave energy. A dead reef absorbs none.
+              The reef kept its cover and lost its architecture
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-              Coral is an animal — a colony of polyps in symbiosis with photosynthetic algae. Above a sea surface
-              temperature anomaly of roughly <strong style={{ color: HEAT_3 }}>+{BLEACHING_THRESHOLD}°C</strong>, that
-              symbiosis breaks down: the coral expels its algae, turns white, and starves without recovery time.
+              Coral is an animal — a colony of polyps in symbiosis with photosynthetic algae. When heat stress
+              accumulates, that symbiosis breaks down: the coral expels its algae, turns white, and starves without
+              recovery time. The Pacific has been through four global bleaching events since 1998.
+            </p>
+            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
+              What happened next is the part most climate narratives get wrong, including an earlier draft of this one.
+              Across 50 datasets and 15,482 surveys, GCRMN found Pacific mean hard coral cover stayed{" "}
+              <strong style={{ color: INK }}>broadly stable at about 25.5% from 1990 to 2022</strong> — falling sharply
+              during the 1998 and 2014–2017 events, then recovering within about six years.
             </p>
             <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 20 }}>
-              The chart below is the same regional SST_ANOM series from beat ② — now with that stress threshold marked.
-              The coral beat here is mechanism, not a per-country bleaching census: the Pacific-wide trend is
-              documented separately by GCRMN (Status and Trends of Coral Reefs of the Pacific, 1980–2023,
-              DOI 10.59387/WIUJ2936), which records an estimated 20–30% cover decline since 1980.
+              The damage is real, but it is not a cover statistic. <strong style={{ color: INK }}>Composition shifted.</strong>{" "}
+              Branching Acroporidae and Pocilloporidae declined while massive Poritidae held steady. The reef kept its
+              area and lost its architecture — and architecture, not cover, is what breaks waves.
             </p>
           </Reveal>
 
           <Reveal delay={0.1}>
             <p style={{ fontSize: 11, color: INK3, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
-              Sea surface temperature anomaly vs. bleaching-stress threshold
+              Sea surface temperature anomaly with observed global bleaching events
             </p>
             <HChart
               height={240}
               options={{
                 chart: { type: "area" },
-                xAxis: { categories: bleachData.map((d) => String(d.year)), lineWidth: 0, tickLength: 0, labels: { style: { fontSize: "10px", color: INK3 } } },
+                xAxis: {
+                  categories: bleachData.map((d) => String(d.year)),
+                  lineWidth: 0, tickLength: 0,
+                  labels: { style: { fontSize: "10px", color: INK3 } },
+                  // Observed events, not an inferred threshold.
+                  plotBands: BLEACHING_EVENTS.map((e) => {
+                    const from = bleachData.findIndex((d) => d.year === e.start);
+                    const to = bleachData.findIndex((d) => d.year === e.end);
+                    if (from < 0) return null;
+                    return {
+                      from: from - 0.5,
+                      to: (to < 0 ? from : to) + 0.5,
+                      color: "rgba(193,54,47,0.10)",
+                      label: { text: e.label, style: { color: HEAT_3, fontSize: "9px" }, rotation: 90, align: "left", x: 3, y: 12 },
+                    };
+                  }).filter(Boolean) as any,
+                },
                 yAxis: {
                   title: { text: undefined }, gridLineColor: BORDER,
                   labels: { format: "{value:+.1f}°C", style: { fontSize: "10px", color: INK3 } },
-                  plotLines: [{
-                    value: BLEACHING_THRESHOLD, color: HEAT_3, width: 1.5, dashStyle: "ShortDash", zIndex: 5,
-                    label: { text: "bleaching-stress threshold", style: { color: HEAT_3, fontSize: "9px" }, align: "left", x: 4, y: -4 },
-                  }],
                 },
                 legend: { enabled: false },
                 tooltip: { ...HC_TOOLTIP, valueDecimals: 2, valueSuffix: "°C" },
@@ -552,15 +591,28 @@ export default function App() {
               }}
             />
             <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
-              SST_ANOM · SPC Pacific Data Hub. Cite: GCRMN Pacific Status Report 1980–2023, DOI 10.59387/WIUJ2936 ·
-              Carlot et al. 2023 (<em>Sci. Reports</em>) · Ferrario et al. 2014 (97% wave energy dissipation).
+              Marked bands are the four observed global mass bleaching events. There is no threshold line here on
+              purpose — see below. SST_ANOM · SPC Pacific Data Hub, anomaly vs the {BASELINE_TEMP} baseline ·
+              GCRMN Pacific Status Report 1980–2023, DOI 10.59387/WIUJ2936.
             </p>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div style={{ background: BG_SUB, borderLeft: `3px solid ${BORDER}`, padding: "12px 16px", borderRadius: "0 3px 3px 0", fontSize: 12, color: INK3, lineHeight: 1.7, marginTop: 20 }}>
+              <strong style={{ color: INK2 }}>Why there is no "+1 °C bleaching threshold" line:</strong> an earlier
+              version of this page drew a dashed line at +1 °C and labelled it a bleaching-stress threshold. That was
+              wrong in kind, not just in placement. Bleaching stress is Degree Heating Weeks accumulated above a site's
+              Maximum Monthly Mean — a local, seasonal-peak quantity. This chart shows an annual mean anomaly, which
+              averages away exactly the summer peak that kills coral, so no horizontal line on this axis can represent
+              a bleaching threshold. Observed event years are used instead: recorded fact rather than a threshold
+              inferred from the wrong axis.
+            </div>
           </Reveal>
 
           <Reveal delay={0.1}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 28, color: INK3, fontSize: 13, fontStyle: "italic" }}>
               <span style={{ fontSize: 20 }}>↓</span>
-              Higher water, no reef brake — waves reach the land at full force
+              Higher water, a flatter reef — waves arrive less broken
             </div>
           </Reveal>
         </div>
@@ -580,16 +632,26 @@ export default function App() {
               Everything above converges here
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-              This is not a list of independent problems. It is a cascade. Higher sea level pushes water
-              toward the land. A bleached, structurally degraded reef no longer absorbs wave energy.
-              The two effects multiply: a reef that has lost 50% structural complexity lets through
-              extreme-height shore waves <strong style={{ color: INK }}>50 times more frequently</strong> than a healthy reef
-              (Carlot et al. 2023; Ferrario et al. 2014).
+              This is not a list of independent problems. It is a cascade. Water has risen. The reef has kept its
+              cover and lost its structure. These are two consequences of the same heat, and they act on the same
+              thing: how much wave energy reaches the shore. Reefs dissipate on average{" "}
+              <strong style={{ color: INK }}>97% of incoming wave energy</strong> (Ferrario et al. 2014), and that
+              dissipation is frictional — it depends on hydraulic roughness, built by exactly the branching and
+              plating growth forms that declined.
             </p>
-            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 20 }}>
-              This hinge is the point that connects the physics to the observation.
-              From here, the consequences are no longer theoretical — they are measured from space.
+            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
+              Modelling a reef in Mo'orea, Carlot and colleagues found that if structural complexity is halved, the
+              wave run-up height that currently occurs <strong style={{ color: INK }}>once in 100 years becomes 50×
+              more frequent</strong>. Higher water plus a flatter reef means the extreme arrives more often, even if
+              the average does not change much.
             </p>
+            <div style={{ background: BG_SUB, borderLeft: `3px solid ${BORDER}`, padding: "12px 16px", borderRadius: "0 3px 3px 0", fontSize: 12, color: INK3, lineHeight: 1.7, marginBottom: 20 }}>
+              <strong style={{ color: INK2 }}>The limit of this link:</strong> Carlot et al. 2023 is a hydrodynamic
+              model of one site in French Polynesia, and the 50× figure applies to a specific return period — not to
+              waves generally. Nothing on this page demonstrates that structural complexity has halved anywhere in the
+              Pacific: the GCRMN data establishes the direction of the compositional shift, not its magnitude in
+              complexity units. This is a mechanism, stated as a mechanism.
+            </div>
           </Reveal>
 
           <Reveal delay={0.1}>
@@ -811,12 +873,13 @@ export default function App() {
               per country per year.
             </p>
             <p style={{ fontSize: 14, lineHeight: 1.8, color: INK3, marginBottom: 10 }}>
-              Reef physics: Ferrario et al. 2014 (97% wave energy reduction by healthy reefs);
-              Carlot et al. 2023, <em>Scientific Reports</em> (50% complexity loss → 50× more frequent damaging waves).
-              Coral trend: GCRMN Pacific Status Report 1980–2023, DOI 10.59387/WIUJ2936.
-              Thermal expansion: NASA / earth.gov (~half of 20th-century sea rise).
+              Temperature anomalies are stated against the <strong>{BASELINE_TEMP}</strong> baseline per SPC indicator
+              metadata (NOAAGlobalTemp v6.0.0). Reef physics: Ferrario et al. 2014 (97% average wave-energy
+              dissipation); Carlot et al. 2023, <em>Scientific Reports</em> (Mo'orea, 1-in-100-year run-up under
+              halved structural complexity). Coral trend: GCRMN, Status and Trends of Coral Reefs of the Pacific
+              1980–2023, DOI 10.59387/WIUJ2936. Thermal expansion: NASA / earth.gov (~half of 20th-century sea rise).
             </p>
-            <p style={{ fontSize: 14, lineHeight: 1.8, color: INK3 }}>
+            <p style={{ fontSize: 14, lineHeight: 1.8, color: INK3, marginBottom: 18 }}>
               Honesty constraints: SEA_LVL shown as regional only (0.1m quantisation). Drinking-water indicator
               excluded (survey artefacts). Only VC_DSR_AFFCT used from the affected-people dataset — other
               indicators mix economic loss (USD) with persons and were excluded. No forward emissions-scenario
@@ -824,6 +887,35 @@ export default function App() {
               one, and inventing precision the data doesn't have is exactly the trap this brief warns against.
               Warming stripes after Ed Hawkins / University of Reading.
             </p>
+
+            <h4 style={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 14, color: INK, marginBottom: 10 }}>
+              Corrections log
+            </h4>
+            <ul style={{ fontSize: 13, lineHeight: 1.75, color: INK3, paddingLeft: 18, margin: 0 }}>
+              <li>
+                <strong style={{ color: INK2 }}>Coral cover.</strong> An earlier version stated an estimated 20–30%
+                cover decline since 1980, citing GCRMN. GCRMN Pacific finds the opposite: cover broadly stable at
+                ~25.5% (1990–2022). The beat now reports the finding the source does support — a compositional shift
+                away from branching families, reducing structural complexity.
+              </li>
+              <li>
+                <strong style={{ color: INK2 }}>Temperature baseline.</strong> Corrected from 1850–1900 to{" "}
+                {BASELINE_TEMP} per SPC metadata.
+              </li>
+              <li>
+                <strong style={{ color: INK2 }}>Bleaching threshold.</strong> A "+1 °C bleaching-stress threshold"
+                line was removed. Bleaching stress is Degree Heating Weeks above a site's Maximum Monthly Mean and
+                cannot be expressed as a line on an annual-mean axis. Replaced with the four observed global events.
+              </li>
+              <li>
+                <strong style={{ color: INK2 }}>Land vs sea.</strong> The land/sea comparison was removed: the series
+                correlate at r = 0.96–0.99 with a mean difference below the data's own 0.1 °C rounding step.
+              </li>
+              <li>
+                <strong style={{ color: INK2 }}>Carlot citation.</strong> The 50× figure is now correctly scoped to
+                the 1-in-100-year wave run-up height at one modelled site in Mo'orea, not to waves generally.
+              </li>
+            </ul>
           </Reveal>
         </div>
       </section>
