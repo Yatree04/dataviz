@@ -3,6 +3,7 @@ import { useClimateData } from "./useClimateData";
 import { decadeMean, stripeColor } from "./utils";
 import MapPanel from "./MapPanel";
 import HChart from "./HChart";
+import RainSmallMultiples from "./RainSmallMultiples";
 
 // ─── TOKENS ──────────────────────────────────────────────────────────────────
 const INK      = "#020817";
@@ -197,9 +198,31 @@ export default function App() {
   if (!data) return <LoadingScreen />;
 
   const {
-    ST_ANOM, SST_ANOM, ST_ANOM_REGIONAL, SST_ANOM_REGIONAL, SEA_LVL_REGIONAL,
+    ST_ANOM, ST_ANOM_REGIONAL, SST_ANOM_REGIONAL, SEA_LVL_REGIONAL,
     GHG, GHG_YEAR, RAIN_ANOM, RAIN_YEAR, AFFECTED,
+    RAIN_TRENDS, RAIN_DRYING, RAIN_WETTING, RAIN_YEARS,
+    AFFECTED_ANNUAL, AFFECTED_TOTAL, AFFECTED_TERRITORIES,
+    AFFECTED_BY_COUNTRY, MORTALITY_BY_COUNTRY,
   } = data;
+
+  // Beat 09 — the concentration is the finding: a handful of years carry most
+  // of the regional total, so the share is computed rather than asserted.
+  const topFourYears = [...AFFECTED_ANNUAL].sort((a, b) => b.affected - a.affected).slice(0, 4);
+  const topFourShare = Math.round(
+    (topFourYears.reduce((a, d) => a + d.affected, 0) / AFFECTED_TOTAL) * 100
+  );
+  const affYears: [number, number] = [
+    AFFECTED_ANNUAL[0]?.year ?? 0,
+    AFFECTED_ANNUAL[AFFECTED_ANNUAL.length - 1]?.year ?? 0,
+  ];
+  const topCountry = AFFECTED_BY_COUNTRY[0];
+
+  // Beat 04b — the finding is that the drying end is where the atolls cluster.
+  const driestFour = RAIN_TRENDS.slice(0, 4);
+  const wettestFour = [...RAIN_TRENDS].slice(-4).reverse();
+  const atollsInDriest = driestFour.filter((t) => t.atoll).length;
+  const nauru = RAIN_TRENDS.find((t) => t.country === "Nauru");
+  const newCal = RAIN_TRENDS.find((t) => t.country === "New Caledonia");
 
   const countries = Object.keys(ST_ANOM).sort();
   const activeCountry = ST_ANOM[tempCountry] ? tempCountry : countries[0];
@@ -227,13 +250,7 @@ export default function App() {
   const ghgSecond = ghgData[1];
   const ghgLowest = ghgData[ghgData.length - 1];
 
-  const rainData = Object.entries(RAIN_ANOM)
-    .sort((a, b) => a[1] - b[1])
-    .map(([country, mm]) => ({ country: country.replace(" Islands", " Is."), mm: +mm.toFixed(0) }));
-  const driest = rainData[0];
-  const wettest = rainData[rainData.length - 1];
-
-  const seaData = SEA_LVL_REGIONAL.map(([year, value]) => ({ year, value: +value.toFixed(2) }));
+  const seaData = SEA_LVL_REGIONAL.map(({ year, value }) => ({ year, value: +value.toFixed(2) }));
   const seaFirst = seaData[0];
   const seaLast = seaData[seaData.length - 1];
   const seaRiseMm = seaFirst && seaLast ? Math.round((seaLast.value - seaFirst.value) * 1000) : 0;
@@ -720,61 +737,70 @@ export default function App() {
 
       <hr style={{ border: "none", borderTop: `1px solid ${BORDER}`, margin: "0 auto", maxWidth: 680 }} />
 
-      {/* ── BEAT ⑥ RAINFALL ── */}
+      {/* ── BEAT ⑥ THE RAIN MOVES ── */}
       <section style={{ padding: "72px 0" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 2rem" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 2rem" }}>
           <Reveal>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-              <div style={{ width: 24, height: 24, borderRadius: "50%", border: `1.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: INK2, flexShrink: 0 }}>⑥</div>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>Supporting Texture — Rainfall</span>
-            </div>
-            <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(20px,3vw,28px)", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", color: INK, marginBottom: 16 }}>
-              Rainfall is shifting — not in one direction
-            </h2>
-            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-              RAIN_ANOM from the SPC Data Hub shows bidirectional change: {driest?.country} is drying most sharply
-              at <strong style={{ color: INK }}>{driest?.mm}mm</strong>; {wettest?.country} is wetting the most
-              at <strong style={{ color: INK }}>+{wettest?.mm}mm</strong>. For atoll nations that collect almost all
-              their freshwater from rainfall, that is not a rounding error — it is a freshwater question.
-            </p>
-            <div style={{ background: BG_SUB, borderLeft: `3px solid ${BORDER}`, padding: "12px 16px", borderRadius: "0 3px 3px 0", fontSize: 12, color: INK3, lineHeight: 1.7, marginBottom: 20 }}>
-              <strong style={{ color: INK2 }}>Supporting texture only:</strong> Rainfall anomalies are modest in magnitude. The direction of change is the finding, not the size. Do not treat these as headline numbers.
+            <div style={{ maxWidth: 680 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", border: `1.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: INK2, flexShrink: 0 }}>⑥</div>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>The Rain Moves</span>
+              </div>
+              <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(20px,3vw,28px)", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", color: INK, marginBottom: 16 }}>
+                The islands with no rivers are the ones drying out
+              </h2>
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
+                Rainfall anomaly is not moving in one direction across the Pacific. Fitting a linear trend to each of
+                the {RAIN_TRENDS.length} national series in RAIN_ANOM ({RAIN_YEARS[0]}–{RAIN_YEARS[1]}) splits the
+                region: <strong style={{ color: INK }}>{RAIN_DRYING} drying, {RAIN_WETTING} wetting</strong>.
+              </p>
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
+                The split is not random. The fastest-drying territories are{" "}
+                {driestFour.map((t, i) => (
+                  <span key={t.country}>
+                    {i > 0 && (i === driestFour.length - 1 ? " and " : ", ")}
+                    {t.country} (<strong style={{ color: INK }}>{t.trend.toFixed(1)} mm per decade</strong>)
+                  </span>
+                ))}
+                . {atollsInDriest} of those {driestFour.length} are low atoll states with no rivers, no lakes and no
+                highland catchment. They hold fresh water in a thin lens floating on seawater beneath the sand,
+                recharged by rain and by nothing else.
+              </p>
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
+                {wettestFour.map((t, i) => (
+                  <span key={t.country}>
+                    {i > 0 && (i === wettestFour.length - 1 ? " and " : ", ")}
+                    {t.country} (+{t.trend.toFixed(1)})
+                  </span>
+                ))}
+                {" "}are getting wetter. Neither direction is neutral. Infrastructure, cropping calendars and catchment
+                sizing were built for the distribution that used to hold.
+              </p>
+              {nauru && newCal && (
+                <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 24 }}>
+                  Nauru's year-to-year standard deviation is <strong style={{ color: INK }}>{nauru.sd.toFixed(1)} mm</strong> —
+                  more than twice New Caledonia's {newCal.sd.toFixed(1)} mm on a far smaller land area. The trend is
+                  downward and the variance around it is the largest in the region.
+                </p>
+              )}
             </div>
           </Reveal>
 
           <Reveal delay={0.1}>
-            <p style={{ fontSize: 11, color: INK3, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
-              Rainfall anomaly (mm), {RAIN_YEAR} · RAIN_ANOM · red = drying · blue = wetting
+            <p style={{ fontSize: 11, color: INK3, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+              Precipitation anomaly by territory, {RAIN_YEARS[0]}–{RAIN_YEARS[1]} · sorted driest to wettest
             </p>
-            <HChart
-              height={Math.max(220, rainData.length * 22)}
-              options={{
-                chart: { type: "bar" },
-                xAxis: { type: "category", categories: rainData.map((d) => d.country), lineWidth: 0, tickLength: 0, labels: { style: { fontSize: "11px", color: INK2 } } },
-                yAxis: {
-                  title: { text: undefined }, gridLineColor: BORDER,
-                  labels: { format: "{value:+.0f}mm", style: { fontSize: "10px", color: INK3 } },
-                  plotLines: [{ value: 0, color: BORDER, width: 1.5 }],
-                },
-                legend: { enabled: false },
-                tooltip: { ...HC_TOOLTIP, pointFormat: '<span style="color:{point.color}">●</span> {point.y:+.0f}mm' },
-                plotOptions: { bar: { borderRadius: 3, borderWidth: 0, pointPadding: 0.1, groupPadding: 0.1 } },
-                series: [{
-                  type: "bar",
-                  name: "Anomaly",
-                  data: rainData.map((d) => ({ y: d.mm, color: d.mm < 0 ? HEAT_3 : ACCRETE })),
-                }],
-              }}
-            />
-            <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
-              RAIN_ANOM · SPC Pacific Data Hub · DF_CLIMATE_CHANGE. Texture, not headline finding.
+            <RainSmallMultiples trends={RAIN_TRENDS} />
+            <p style={{ fontSize: 11, color: INK3, marginTop: 10, fontStyle: "italic", maxWidth: 680 }}>
+              Linear trend fitted to annual precipitation anomaly, {RAIN_YEARS[0]}–{RAIN_YEARS[1]}, per territory.
+              SPC RAIN_ANOM. ENSO drives most of the interannual range in every panel.
             </p>
           </Reveal>
 
           <Reveal delay={0.1}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 28, color: INK3, fontSize: 13, fontStyle: "italic" }}>
               <span style={{ fontSize: 20 }}>↓</span>
-              The physical chain ends at a specific door
+              Rain is the recharge term. Where it stopped arriving, the water did not
             </div>
           </Reveal>
         </div>
@@ -788,57 +814,101 @@ export default function App() {
           <Reveal>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
               <div style={{ width: 24, height: 24, borderRadius: "50%", border: `1.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: INK2, flexShrink: 0 }}>⑦</div>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>A Displaced Life — Coda</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>The Count</span>
             </div>
             <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(20px,3vw,28px)", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", color: INK, marginBottom: 16 }}>
-              The moving line is where a house was
+              {(AFFECTED_TOTAL / 1e6).toFixed(1)} million people, and {topFourShare}% of them in four years
             </h2>
             <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-              On 20 February 2016, Tropical Cyclone Winston made landfall in Fiji — the most powerful tropical cyclone
-              ever recorded in the Southern Hemisphere at the time of landfall. A single event.
-              A single verified number from the VC_DSR_AFFCT indicator.
+              The SPC disaster file records directly affected persons attributed to disasters for{" "}
+              {AFFECTED_TERRITORIES} Pacific countries and territories from {affYears[0]} to {affYears[1]}. The total
+              is <strong style={{ color: INK }}>{AFFECTED_TOTAL.toLocaleString()}</strong>.
             </p>
-          </Reveal>
-
-          <Reveal delay={0.08}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 16, margin: "36px 0 32px", paddingTop: 24, borderTop: `1px solid ${BORDER}` }}>
-              <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: "clamp(60px,10vw,96px)", color: HEAT_3, lineHeight: 1, letterSpacing: "-0.03em" }}>{winston.affected.toLocaleString()}</span>
-              <div>
-                <div style={{ fontSize: 15, color: INK2, fontWeight: 600, lineHeight: 1.3 }}>people affected</div>
-                <div style={{ fontSize: 13, color: INK3, marginTop: 3 }}>Cyclone Winston · {winston.country} · {winston.year}</div>
-              </div>
-            </div>
+            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
+              {topFourShare}% of that total falls in four years.{" "}
+              {topFourYears.map((d, i) => (
+                <span key={d.year}>
+                  {i > 0 && (i === topFourYears.length - 1 ? " and " : ", ")}
+                  <strong style={{ color: INK }}>{d.year}</strong> accounts for {d.affected.toLocaleString()}
+                </span>
+              ))}
+              . The years between them are mostly in the tens of thousands.
+            </p>
+            {topCountry && (
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
+                {topCountry.country} alone accounts for{" "}
+                <strong style={{ color: INK }}>{topCountry.total.toLocaleString()}</strong> affected persons across the
+                years reported — more than the country's population. Some people appear in that total more than once.
+              </p>
+            )}
+            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 20 }}>
+              Recorded mortality across the same file is far smaller and differently distributed:{" "}
+              {MORTALITY_BY_COUNTRY.slice(0, 4).map((m, i) => (
+                <span key={m.country}>
+                  {i > 0 && ", "}{m.country} {m.total.toLocaleString()}
+                </span>
+              ))}
+              . Pacific disaster mortality is low relative to the number affected, which is what functioning early
+              warning looks like. Displacement, damaged housing and lost water supply are what the affected count
+              measures, and it rises in bursts.
+            </p>
           </Reveal>
 
           <Reveal delay={0.1}>
-            <p style={{ fontSize: 11, color: INK3, marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
-              VC_DSR_AFFCT · the five largest verified single-year events · SPC Pacific Data Hub
+            <p style={{ fontSize: 11, color: INK3, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+              Directly affected persons per year, {affYears[0]}–{affYears[1]} · mortality on the right axis
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {AFFECTED.slice(0, 5).map((d, i) => (
-                <div key={`${d.iso}-${d.year}`} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 110, fontSize: 12, color: INK2, textAlign: "right", flexShrink: 0 }}>
-                    {d.country} <span style={{ color: INK3, fontWeight: 400 }}>{d.year}</span>
-                  </div>
-                  <div style={{ flex: 1, height: 6, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
-                    <Reveal>
-                      <div style={{
-                        height: "100%", borderRadius: 3,
-                        width: `${(d.affected / winston.affected) * 100}%`,
-                        background: i === 0 ? HEAT_3 : HEAT_2,
-                        opacity: 0.8,
-                      }} />
-                    </Reveal>
-                  </div>
-                  <div style={{ width: 72, fontSize: 12, color: i === 0 ? HEAT_3 : HEAT_2, fontWeight: 600, flexShrink: 0 }}>
-                    {d.affected.toLocaleString()}
-                  </div>
-                </div>
-              ))}
+            <HChart
+              height={300}
+              options={{
+                chart: { type: "column" },
+                xAxis: {
+                  categories: AFFECTED_ANNUAL.map((d) => String(d.year)),
+                  lineWidth: 0, tickLength: 0,
+                  labels: { style: { fontSize: "10px", color: INK3 } },
+                },
+                yAxis: [
+                  {
+                    title: { text: undefined }, gridLineColor: BORDER,
+                    labels: { formatter(this: any) { return this.value >= 1000 ? `${this.value / 1000}k` : this.value; }, style: { fontSize: "10px", color: INK3 } },
+                  },
+                  {
+                    title: { text: "deaths", style: { fontSize: "10px", color: INK3 } },
+                    opposite: true, gridLineWidth: 0,
+                    labels: { style: { fontSize: "10px", color: INK3 } },
+                  },
+                ],
+                legend: { enabled: true, itemStyle: { fontSize: "11px", color: INK3, fontWeight: "400" } },
+                tooltip: { ...HC_TOOLTIP, shared: true },
+                plotOptions: { column: { borderRadius: 2, borderWidth: 0 } },
+                series: [
+                  {
+                    type: "column", name: "People affected", yAxis: 0,
+                    data: AFFECTED_ANNUAL.map((d) => ({
+                      y: d.affected,
+                      color: topFourYears.some((t) => t.year === d.year) ? HEAT_3 : HEAT_2,
+                    })),
+                  },
+                  {
+                    type: "line", name: "Recorded deaths", yAxis: 1,
+                    data: AFFECTED_ANNUAL.map((d) => d.mortality),
+                    color: INK, lineWidth: 1.5, marker: { enabled: false },
+                  },
+                ] as any,
+              }}
+            />
+            <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
+              VC_DSR_AFFCT and VC_DSR_MORT · SPC Pacific Data Hub. Darker columns are the four largest years.
+            </p>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div style={{ background: BG_SUB, borderLeft: `3px solid ${BORDER}`, padding: "12px 16px", borderRadius: "0 3px 3px 0", fontSize: 12, color: INK3, lineHeight: 1.7, marginTop: 20 }}>
+              <strong style={{ color: INK2 }}>What this count can and cannot say:</strong> VC_DSR_AFFCT is the only
+              clean indicator in this file. The others mix units — one reports persons, another reports economic loss
+              in USD under a similar label. Reporting completeness also varies by country and year, so a low national
+              total may mean few events or thin reporting rather than fewer people affected.
             </div>
-            <p style={{ fontSize: 11, color: INK3, marginTop: 10, fontStyle: "italic" }}>
-              Only VC_DSR_AFFCT included — the one verified indicator from the SPC affected-people dataset. Other indicators (economic loss mixed with person counts) excluded per brief.
-            </p>
           </Reveal>
 
           <Reveal delay={0.1}>
