@@ -8,19 +8,16 @@
   <meta name="description"
     content="An interactive scrollytelling essay on the Pacific climate cascade: heat → water → reef → coast → life. Built for the Pacific DataViz Challenge 2026." />
 
-  <!-- Fonts preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!-- MapLibre CSS -->
   <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
-
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/patch.css" />
 </head>
 
 <body>
 
-  <!-- ── PAGE LOADER (removed once real CSV data has loaded) ── -->
+  <!-- ── PAGE LOADER ── -->
   <div class="page-loader" id="page-loader" aria-hidden="true">
     <div class="page-loader__mark">
       <div class="page-loader__ring"></div>
@@ -28,12 +25,10 @@
     </div>
   </div>
 
-  <!-- ── SCROLL PROGRESS ──────────────────────────────────── -->
   <div class="scroll-progress" aria-hidden="true">
     <div class="scroll-progress__fill" id="scroll-progress-fill"></div>
   </div>
 
-  <!-- ── TOP NAV ──────────────────────────────────────────── -->
   <nav class="site-nav" aria-label="Site navigation">
     <a href="#" class="nav-back" aria-label="Back to top">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -44,45 +39,42 @@
     <span class="nav-eyebrow">Pacific DataViz Challenge 2026 · Climate Change</span>
   </nav>
 
-  <!-- ── WAYFINDING: beat dot rail (populated by JS) ───────── -->
   <nav class="progress-rail" id="progress-rail" aria-label="Story progress"></nav>
 
-  <!-- ── SINGLE-COLUMN STORY ─────────────────────────────── -->
   <div class="layout">
     <main class="story" id="story">
 
-      <!-- ── HERO ────────────────────────────────────────── -->
+      <!-- ══ HERO ══════════════════════════════════════════════ -->
       <section class="hero">
-        <!-- p5.js animated wave background -->
         <div id="hero-canvas" aria-hidden="true"></div>
         <div class="hero__content">
-
           <p class="hero__eyebrow">Pacific DataViz Challenge 2026 · Climate Change</p>
           <h1 class="hero__title">The&nbsp;Line<br><em>That Moves</em></h1>
-          <p class="hero__lede">A coastline is being measured from space every year. In twenty-five years of satellite
-            data, it has moved. This is the story of why — told through the chain of events connecting a greenhouse gas
-            to a household that no longer has a yard.</p>
+          <p class="hero__lede">A Pacific coastline is traced by satellite every year. Over twenty-five years of
+            imagery, it does not sit still. This is an attempt to follow the mechanism from a tonne of carbon to a
+            moving shoreline — and to be honest about where the chain holds and where it does not.</p>
           <p class="scroll-cue">Scroll to begin ↓</p>
         </div>
       </section>
 
-
-      <!-- ── BEAT 0: cold open — the coastline moves ──────── -->
+      <!-- ══ BEAT 0 · cold open ════════════════════════════════ -->
       <section class="step step--map map-beat" data-beat="0" id="beat-0">
         <div class="map-beat__text">
           <div class="narrative-card">
             <span class="beat-label">The payoff, first</span>
             <h2>This is a coastline. Watch it move.</h2>
             <p>A real Pacific shoreline traced by satellite from 1999 to 2023.
-              <strong>Drag the timeline below</strong> to travel through time —
-              each position shows that year's measured coastline.
+              <strong>Drag the timeline below</strong> to travel through time — each position is that year's
+              extracted shoreline.
             </p>
-            <p class="note">Coastline data: Digital Earth Pacific · Landsat annual shorelines, 1999–2023</p>
+            <p>It moves. That much is measurement. <em>Why</em> it moves is the rest of this piece, and the answer is
+              less tidy than the picture suggests.</p>
+            <p class="note">Digital Earth Pacific · Landsat annual shorelines, 1999–2023. Shorelines are
+              sub-pixel estimates from 30&nbsp;m imagery with tidal correction; year-to-year differences of a few
+              metres sit inside the method's own uncertainty.</p>
           </div>
-          <!-- Year timeline widget — inited by JS on first scroll to beat-0 -->
           <div id="timeline-container" class="timeline-container"></div>
         </div>
-        <!-- Sticky visual: map pins here while the text above scrolls -->
         <div class="map-beat__visual">
           <div class="map-block">
             <div id="map"></div>
@@ -92,19 +84,33 @@
         </div>
       </section>
 
-      <!-- ── BEAT ①: emissions ───────────────────────────── -->
+      <!-- ══ BEAT 1 · the input ════════════════════════════════ -->
       <section class="step step--chart" data-beat="1" id="beat-1">
         <span class="beat-label">The input</span>
         <h2>It begins with heat they barely added</h2>
-        <p>Every nation in this story contributes a negligible share of global greenhouse gas emissions. Yet the
-          emissions don't stay where they're made. Atmospheric heat is not a local phenomenon.</p>
-        <p>Note the internal range: Palau and New Caledonia are outliers with large industrial or tourism-driven
-          footprints. Most island nations emit under 4 tCO₂e per person — less than a transatlantic flight for a
-          European tourist.</p>
+        <p>Every nation in this story contributes a negligible share of global emissions. But emissions do not stay
+          where they are made, and atmospheric heat is not a local phenomenon. That asymmetry is the premise of
+          everything below.</p>
+        <p>The chart is on a <strong>logarithmic</strong> axis, because the usable series span three orders of
+          magnitude and a linear axis renders the small emitters as invisible slivers — which would have made the
+          headline above unreadable.</p>
+
+        <blockquote class="honesty-note">
+          ⚠ <strong>Two data problems, flagged rather than explained.</strong> Palau's series reads 86.7&nbsp;t per
+          capita — but it starts at <strong>190.6&nbsp;t in 1970</strong> and falls roughly 60% since, while tourism
+          grew. No industrial or tourism footprint produces that shape; it is a denominator or bunker-fuel
+          allocation artifact. Nauru, Guam, the Marshall Islands, N.&nbsp;Mariana Is. and American Samoa sit at a
+          flat 0.1 for fifty consecutive years, which is missing data wearing a number. Those bars are hatched and
+          excluded from the range annotation.
+          <br><br>
+          The SPC metadata also notes that this World Bank series measures <strong>CO₂ only</strong>, not all six
+          Kyoto greenhouse gases, despite the indicator's name. The axis says "CO₂" for that reason.
+        </blockquote>
+
         <p class="note note--bridge">But where does the trapped heat go? →</p>
 
         <div class="chart-section breakout">
-          <h3 class="chart-title">GHG emissions per capita — Pacific nations</h3>
+          <h3 class="chart-title">Emissions per capita — Pacific nations</h3>
           <div id="chart-emissions" class="chart"></div>
         </div>
 
@@ -114,198 +120,377 @@
         </div>
       </section>
 
-      <!-- ── BEAT ②: temperature ─────────────────────────── -->
+      <!-- ══ BEAT 2 · the heat store ═══════════════════════════ -->
       <section class="step step--chart" data-beat="2" id="beat-2">
         <span class="beat-label">The heat store</span>
-        <h2>The ocean took the heat — 91% of it</h2>
-        <p>When carbon dioxide traps solar radiation, the energy has to go somewhere. Scientists have measured
-          where: <strong><span class="count-up" data-target="91" data-suffix="%">0%</span> enters the ocean.</strong>
-          The rest goes into the land surface, ice, and atmosphere.
+        <h2>The ocean took the heat — about 91% of it</h2>
+        <p>When greenhouse gases trap outgoing radiation, the energy has to accumulate somewhere. The IPCC's
+          assessment of the Earth's energy budget puts roughly
+          <strong><span class="count-up" data-target="91" data-suffix="%">0%</span> of it in the ocean</strong>.
+          The remainder goes into land, ice and atmosphere. That is why an atmospheric problem becomes an oceanic
+          one — and why the rest of this chain runs through seawater.
         </p>
-        <p>The chart shows both signals — land surface temperature anomaly and sea surface temperature anomaly — for
-          a single country. Both are rising from the same baseline, but the ocean accumulates heat more slowly and
-          holds it longer.</p>
+        <p>The line below is sea surface temperature anomaly for one country's exclusive economic zone, measured
+          against the <strong>1971–2000</strong> baseline. Pick a country to change it.</p>
 
-        <!-- Country selector: pill-button style -->
         <div class="country-selector" id="country-selector">
           <span class="selector-label">Select a country</span>
-          <div class="country-pills" id="country-pills">
-            <!-- populated by JS -->
-          </div>
+          <div class="country-pills" id="country-pills"></div>
         </div>
 
         <div class="chart-section breakout">
-          <h3 class="chart-title">Land &amp; sea surface temperature anomaly (°C vs 1850–1900 mean)</h3>
+          <h3 class="chart-title">Sea surface temperature anomaly (°C vs 1971–2000 mean)</h3>
           <div id="chart-temperature" class="chart"></div>
-          <div class="warming-stripes-label">
-            <span class="stripe-cool">◼ Cooler</span>
-            <span class="stripe-warm">◼ Warmer</span>
-          </div>
         </div>
+
+        <div class="callout callout--method">
+          <h4>Two things this chart deliberately shows</h4>
+          <p><strong>The shaded ribbon is uncertainty.</strong> The SPC export ships a standard error alongside every
+            observation. Its median is 0.1&nbsp;°C — and the values themselves are rounded to 0.1&nbsp;°C. Much of
+            the year-to-year detail sits inside that band, so the ribbon is drawn rather than footnoted, and the
+            tooltip prints one decimal instead of pretending to two.</p>
+          <p><strong>The shaded columns are ENSO.</strong> El Niño and La Niña are the dominant mode of Pacific
+            interannual variability. Nearly every large wiggle in this line is an ENSO event, not a step in the
+            emissions trend. Naming them is the difference between showing a trend and letting the reader mistake
+            noise for one. They recur in the sea level and rainfall charts below, because the same oscillation drives
+            those too.</p>
+        </div>
+
+        <details class="method-note">
+          <summary>Why there is no "land vs sea" comparison here</summary>
+          <p>An earlier version of this page plotted land surface temperature against sea surface temperature and
+            captioned it "the ocean accumulates heat more slowly." That comparison does not survive contact with the
+            data. In this export the two series correlate at <strong>r&nbsp;=&nbsp;0.96–0.99</strong> with a mean
+            absolute difference of 0.03–0.10&nbsp;°C — <em>smaller than the 0.1&nbsp;°C rounding step</em>. For Fiji
+            they are literally the identical number in 61% of years; for Tuvalu, 67%.</p>
+          <p>The reason is structural: both come from the same 5°&nbsp;×&nbsp;5° NOAAGlobalTemp field, over grid cells
+            that are almost entirely ocean. There is no independent land station network on an atoll. Globally land
+            does warm faster than ocean — but this dataset cannot show that, so the claim has been removed rather than
+            illustrated with two copies of the same line.</p>
+        </details>
       </section>
 
-      <!-- ── BEAT ③a: sea level ──────────────────────────── -->
+      <!-- ══ BEAT 3a · sea level ═══════════════════════════════ -->
       <section class="step step--chart" data-beat="3a" id="beat-3a">
-        <span class="beat-label">Two consequences, one cause</span>
+        <span class="beat-label">First consequence</span>
         <h2>Warm water is bigger water</h2>
-        <p>Heat doesn't only melt ice. When water warms, its molecules move faster and spread further — the same
-          volume of water takes up more space. This <em>thermal expansion</em> accounts for roughly half of last
-          century's sea-level rise.</p>
-        <p>The Pacific has experienced a clear upward trend. The numbers are small in absolute metres — but for an
-          island nation whose highest point is four metres above sea level, every centimetre is a percentage of its
-          future.</p>
+        <p>Heat does not only melt ice. When seawater warms it expands, so the same mass occupies more volume. This
+          <em>thermal expansion</em> accounts for roughly 40% of sea-level rise across the twentieth century, and
+          closer to half of the rise since 1971.
+        </p>
+        <p>The Pacific has a clear upward trend. The absolute numbers are small in metres — but for an island nation
+          whose highest natural point is a few metres above sea level, the relevant question is not the mean, it is
+          how often the extreme now reaches further inland.</p>
+
         <blockquote class="honesty-note">
-          ⚠ Sea-level values in this dataset are reported at 0.1 m resolution and are shown as a regional mean. They
-          are not precise enough to compare individual countries.
+          ⚠ Per-country values in this export are quantised to <strong>0.1&nbsp;m</strong>, so this is shown as a
+          regional mean with the rounding envelope drawn. Individual years are not resolvable; the trend is. The
+          Copernicus source is centimetre-resolution — re-exporting from .Stat with more decimals would remove this
+          caveat entirely.
         </blockquote>
 
         <div class="chart-section breakout">
-          <h3 class="chart-title">Sea level anomaly (m) — Pacific regional mean</h3>
+          <h3 class="chart-title">Sea level anomaly (m vs 1993–2012) — Pacific regional mean</h3>
           <div id="chart-sealevel" class="chart"></div>
         </div>
-      </section>
 
-      <!-- ── BEAT ③b: coral bleaching ────────────────────── -->
-      <section class="step step--chart" data-beat="3b" id="beat-3b">
-        <span class="beat-label">The seawall that lived</span>
-        <h2>The same heat empties the reef</h2>
-        <p>Coral is not a rock. It is an animal — a colony of tiny polyps living in a symbiotic relationship with
-          photosynthetic algae that live inside them. When water temperature rises even 1–2°C above a seasonal
-          limit, the coral expels its algae. It turns white. Without its food source, it starves.</p>
-        <p>The Pacific has lost an estimated 50% of living coral cover since the 1980s. The GCRMN Pacific Reports
-          document recurrent mass bleaching events aligned with the same SST anomaly peaks visible in the
-          temperature chart.</p>
-        <p>The shaded band marks the approximate SST anomaly threshold beyond which bleaching stress becomes likely.
-          This is a mechanism, not a model.</p>
-        <p class="note">GCRMN Status and Trends of Coral Reefs of the Pacific, 1980–2023 (DOI 10.59387/WIUJ2936) ·
-          USGS Mo'orea coral-cover time series</p>
-
-        <div class="chart-section breakout">
-          <h3 class="chart-title">Sea surface temp anomaly w/ bleaching-stress range</h3>
-          <div id="chart-bleaching" class="chart"></div>
+        <div class="callout">
+          <h4>The dips are not pauses</h4>
+          <p>The 1998 minimum in this series is the 1997–98 El Niño; the 2020–22 high is the triple-dip La Niña.
+            Western Pacific sea level is strongly modulated by trade-wind strength, which is why regional rates ran
+            two to three times the global mean through the 1990s and 2000s before moderating. A regional trend is not
+            a global trend, and the SPC metadata says so explicitly.</p>
         </div>
       </section>
 
-      <!-- ── BEAT ③c: rainfall ───────────────────────────── -->
-      <section class="step step--chart" data-beat="3c" id="beat-3c">
-        <span class="beat-label">Not just temperature</span>
-        <h2>Rain that once knew its season</h2>
-        <p>Rainfall, too, is shifting — but not in one direction. Some islands are drying; some are receiving more
-          rain. Neither outcome is safe when agricultural systems, water catchment, and infrastructure were built
-          around a pattern that no longer holds.</p>
-        <p>Nauru's rainfall anomaly shows the most extreme drying in the region. Tonga tends wetter. Fiji and others
-          vary year to year as cyclone tracks shift.</p>
+      <!-- ══ BEAT 3b · the reef ════════════════════════════════ -->
+      <section class="step step--chart" data-beat="3b" id="beat-3b">
+        <span class="beat-label">Second consequence</span>
+        <h2>The reef did not empty. It flattened.</h2>
+        <p>Coral is an animal — a colony of polyps living with photosynthetic algae inside their tissue. When water
+          stays above a local seasonal maximum for long enough, the coral expels those algae, turns white, and
+          begins to starve. That is bleaching, and the Pacific has been through four global events since 1998.</p>
+
+        <p>What happened next is the part most climate narratives get wrong, including an earlier draft of this one.
+          Across 50 datasets and <strong>15,482 surveys</strong>, the GCRMN found that Pacific mean hard coral cover
+          stayed <strong>broadly stable at about 25.5%</strong> from 1990 to 2022 — falling sharply during the 1998
+          and 2014–2017 events, then recovering within about six years.</p>
+
+        <p>The damage is real, but it is not a cover statistic. <strong>Composition shifted.</strong> Branching
+          Acroporidae and Pocilloporidae declined while massive Poritidae held steady. The reef kept its area and
+          lost its architecture — and architecture, not cover, is what breaks waves.</p>
 
         <div class="chart-section breakout">
-          <h3 class="chart-title">Rainfall anomaly (mm) — most recent year, per country</h3>
+          <h3 class="chart-title">Sea surface temp anomaly with observed global bleaching events</h3>
+          <div id="chart-bleaching" class="chart"></div>
+          <p class="chart-footnote">Marked bands are the four <em>observed</em> global mass bleaching events. There is
+            no threshold line here on purpose — see below.</p>
+        </div>
+
+        <details class="method-note">
+          <summary>Why there is no "+1&nbsp;°C bleaching threshold" line</summary>
+          <p>An earlier version drew a dashed line at +1&nbsp;°C and labelled it a bleaching-stress threshold. That
+            was wrong in kind, not just in placement. Bleaching stress is <strong>Degree Heating Weeks</strong>
+            accumulated above a site's <strong>Maximum Monthly Mean</strong> — a local, seasonal-peak quantity. This
+            chart shows an <em>annual mean</em> anomaly against a <em>1971–2000</em> baseline. An annual mean averages
+            away exactly the summer peak that kills coral, so no horizontal line on this axis can represent a
+            bleaching threshold.</p>
+          <p>The old line also only rendered when the maximum of the land <em>or</em> sea series exceeded 1.0, so it
+            silently disappeared for 13 of 22 countries — including Tuvalu, the Marshall Islands, Palau and Samoa —
+            while the caption kept referring to it. For New Caledonia and Nauru it was triggered by the
+            <em>land</em> series, which has nothing to do with coral.
+          </p>
+          <p>Observed event years are used instead. They are recorded fact rather than a threshold inferred from the
+            wrong axis.</p>
+        </details>
+
+        <div class="chart-section breakout" style="margin-top:2rem;">
+          <h3 class="chart-title">What the GCRMN surveys actually found</h3>
+          <div id="chart-reef" class="chart"></div>
+        </div>
+
+        <p class="note">GCRMN, <em>Status and Trends of Coral Reefs of the Pacific: 1980–2023</em>
+          (DOI 10.59387/WIUJ2936). Sea surface temperature over Pacific reefs rose 0.82&nbsp;°C between 1985 and
+          2022 — about 0.22&nbsp;°C per decade.</p>
+      </section>
+
+      <!-- ══ BEAT 3c · rainfall ════════════════════════════════ -->
+      <section class="step step--chart" data-beat="3c" id="beat-3c">
+        <span class="beat-label">A parallel signal</span>
+        <h2>Rain that no longer keeps to its season</h2>
+        <p>Rainfall is shifting too, but not in one direction. Some islands trend drier, some wetter. Neither is safe
+          when catchment, agriculture and water storage were all built around a pattern.</p>
+        <p>The bars are <strong>ten-year means</strong>, not single years — because "tends drier" is a claim about a
+          tendency and one year of an anomaly series is weather. The hollow dot is the most recent single year, kept
+          visible so you can see how far one year sits from the tendency.</p>
+
+        <div class="chart-section breakout">
+          <h3 class="chart-title">Rainfall anomaly (mm) — ten-year mean by country</h3>
           <div id="chart-rainfall" class="chart"></div>
         </div>
+
+        <div class="callout">
+          <h4>Read the gap between the dot and the bar</h4>
+          <p>The most recent year shows a sharp dry anomaly through the central equatorial Pacific — Nauru, Kiribati,
+            Tuvalu — and wet conditions in the southwest. That dipole is the classic ENSO rainfall signature, not a
+            greenhouse trend. It is the single clearest illustration on this page of why one year cannot carry a
+            climate claim, which is why both quantities are drawn together.</p>
+        </div>
       </section>
 
-      <!-- ── BEAT ④: causal hinge ────────────────────────── -->
+      <!-- ══ BEAT 4 · the hinge ════════════════════════════════ -->
       <section class="step step--pivot" data-beat="4" id="beat-4">
         <div class="pivot-card">
           <span class="beat-label">The mechanism</span>
-          <h2>So the waves arrive unbroken</h2>
+          <h2>So the waves arrive less broken</h2>
           <div class="pivot-body">
-            <p>Water has risen. The reef is dying or dead. These are two separate consequences of the same heat — but
-              they combine into something worse than either alone.</p>
-            <p>A healthy coral reef dissipates <strong><span class="count-up" data-target="97" data-suffix="%">0%</span>
-                of a wave's energy</strong> before it reaches the shore. The complex structures — branches, plates,
-              ridges — create turbulence that extracts kinetic energy from breaking waves.</p>
-            <p>When reef complexity drops by 50%, the mathematical relationship is not linear. Extreme-wave events
-              become <strong>more than <span class="count-up" data-target="50" data-suffix="×">0×</span> more
-                frequent</strong> at the shore.</p>
-            <p>That is the causal hinge: warm water + dead reef = unbroken waves + higher water. The coast is now open
-              to forces it was never meant to absorb alone.</p>
+            <p>Water has risen. The reef has kept its cover and lost its structure. These are two consequences of the
+              same heat, and they act on the same thing: how much wave energy reaches the shore.</p>
+            <p>Coral reefs dissipate on average <strong><span class="count-up" data-target="97"
+                  data-suffix="%">0%</span> of incoming wave energy</strong>, with the reef crest alone accounting
+              for about 86% of that. The dissipation is frictional — it depends on hydraulic roughness, which is
+              built by branching, plating, three-dimensional growth forms. Precisely the forms that declined.</p>
+            <p>Modelling a reef in Moorea, Carlot and colleagues found that if structural complexity is
+              <strong>halved</strong>, the wave run-up height that currently occurs
+              <strong>once in 100 years</strong> becomes
+              <strong><span class="count-up" data-target="50" data-suffix="×">0×</span> more frequent</strong>.
+            </p>
+            <p>That is the hinge: higher water plus a flatter reef means the extreme arrives more often, even if the
+              average does not change much. The shore is exposed to a frequency it was not built around.</p>
           </div>
-          <p class="pivot-cite">Carlot et al. 2023, <em>Scientific Reports</em> (Mo'orea) · Ferrario et al. 2014 (97%
-            energy dissipation)</p>
-          <p class="handoff">Now measured directly, from space</p>
+          <p class="pivot-cite">Ferrario et al. 2014, <em>Nature Communications</em> (97% average dissipation) ·
+            Carlot et al. 2023, <em>Scientific Reports</em> (Moorea, 1-in-100-year run-up)</p>
+
+          <blockquote class="honesty-note honesty-note--tight">
+            ⚠ <strong>The limit of this link.</strong> Carlot et al. is a hydrodynamic model of one site in French
+            Polynesia, and the 50× figure applies to a specific return period, not to waves generally. Nothing on
+            this page demonstrates that structural complexity has halved anywhere in the Pacific — the GCRMN data
+            establishes the <em>direction</em> of the compositional shift, not its magnitude in complexity units.
+            This is the mechanism, stated as a mechanism.
+          </blockquote>
+          <p class="handoff">Which matters only because of who is standing there</p>
         </div>
       </section>
 
-      <!-- ── BEAT ⑤: measured retreat — MAP PAYOFF ─────── -->
-      <section class="step step--map map-beat" data-beat="5" id="beat-5">
-        <div class="map-beat__text">
-          <span class="beat-label">The measurement</span>
-          <h2>You don't have to model this</h2>
-          <p>Every transect on this map is a real measurement — metres of coastline gained or lost per year, from
-            satellite data across the entire Pacific. <span class="map-key map-key--erode">Red</span> retreats. <span
-              class="map-key map-key--accrete">Blue</span> builds.</p>
-          <p>Click any point to see the rate at that transect.</p>
-          <p class="note">Digital Earth Pacific · rates_of_change layer, 10.4 million transects, 2023</p>
+      <!-- ══ BEAT 5 · exposure ═════════════════════════════════ -->
+      <section class="step step--chart" data-beat="5" id="beat-5">
+        <span class="beat-label">The missing middle</span>
+        <h2>The hazard grew. So did the exposure.</h2>
+        <p>A hazard only becomes a risk where people are. This is the part of the chain that is easiest to skip and
+          hardest to argue with: while the reef flattened and the water rose, more people moved to within walking
+          distance of both.</p>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-card__value"><span class="count-up" data-target="28.7"
+                data-suffix="%" data-decimals="1">0%</span></span>
+            <span class="stat-card__label">growth in population living within 5&nbsp;km of a Pacific reef,
+              since 2000</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__value"><span class="count-up" data-target="945">0</span></span>
+            <span class="stat-card__label">cyclones passing within 100&nbsp;km of a Pacific reef, 1980–2023</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__value">+<span class="count-up" data-target="0.82"
+                data-suffix="°C" data-decimals="2">0</span></span>
+            <span class="stat-card__label">sea surface warming over Pacific reef areas, 1985–2022
+              (≈0.22&nbsp;°C/decade)</span>
+          </div>
         </div>
-        <!-- Sticky visual — the map block is re-parented here by main.js -->
-        <div class="map-beat__visual" id="beat-5-visual"></div>
+
+        <p>Two of those three are hazard. The first is exposure — and it is the one that turns a physical chain into
+          a human one. A reef that dissipates less energy in front of a shore where nobody lives is an ecological
+          story. In front of a shore where a third more people now live, it is a risk story.</p>
+
+        <p class="note">All three figures: GCRMN, <em>Status and Trends of Coral Reefs of the Pacific 1980–2023</em>.
+          These are published regional headline values, transcribed and cited — not computed from a dataset
+          downloaded for this project. For a per-country exposure layer, SPC publishes coastal population at 1, 5 and
+          10&nbsp;km from the coast; that is the natural next build.</p>
       </section>
 
-      <!-- ── BEAT ⑥: coda — a displaced life ──────────── -->
+      <!-- ══ BEAT 6 · the measurement ══════════════════════════ -->
       <section class="step step--map map-beat" data-beat="6" id="beat-6">
         <div class="map-beat__text">
-          <div class="narrative-card narrative-card--final">
-            <span class="beat-label">The physics, finally, is a person</span>
-            <h2>The line is where a home was</h2>
-            <p>Cyclone Winston made landfall in Fiji on 20 February 2016 — the most powerful tropical cyclone ever
-              recorded in the Southern Hemisphere at the time of landfall.</p>
-            <p class="stat"><strong><span class="count-up" data-target="633584" data-suffix="">0</span>
-                people</strong> were directly affected.</p>
-            <p>Every mechanism described above — warmer seas feeding cyclone intensity, dead reefs offering no wave
-              brake, raised water extending inland storm surge — converged in that one event.</p>
-            <p class="note">Source: SPC Pacific Data Hub · VC_DSR_AFFCT indicator · verified single-event record</p>
+          <span class="beat-label">The measurement</span>
+          <h2>You don't have to model this — but you do have to read it carefully</h2>
+          <p>Every point on this map is a measured rate of shoreline change in metres per year, from satellite data
+            across the Pacific. <span class="map-key map-key--erode">Red</span> retreats.
+            <span class="map-key map-key--accrete">Blue</span> builds. Click any point for its rate.
+          </p>
+          <p>Notice how much blue there is. That is not a flaw in the data, and this piece would be dishonest if it
+            hurried past it.</p>
+
+          <div class="callout callout--warn">
+            <h4>Where the simple version of this story breaks</h4>
+            <p>Reef islands are not passive platforms being overtopped. They are sediment landforms, continuously
+              built from material the reef produces. A reanalysis of 709 islands across 30 Pacific and Indian Ocean
+              atolls found that <strong>no atoll lost land area</strong> and 88.6% of islands were stable or grew.
+              In Tuvalu — where local sea level rose at roughly twice the global rate — total land area
+              <strong>increased by 2.9%</strong> over four decades, with eight of nine atolls gaining.
+            </p>
+            <p>So "sea level rises, therefore islands shrink" is not what the measurements say, and a submission that
+              claimed it would be corrected within a minute by anyone who works on Pacific coasts.</p>
+            <p>What the measurements do say is that shorelines are <strong>highly mobile</strong>. Islands migrate
+              across their reef platforms, gain on one side and lose on the other, and reorganise after storms.
+              Habitability is threatened less by area loss than by three things this mobility does not capture:
+              episodic overwash reaching further inland, salinisation of the thin freshwater lens beneath the island,
+              and degradation of the reef that supplies the sediment in the first place. That last one is where this
+              chain actually closes.</p>
           </div>
+          <p class="note">Digital Earth Pacific · rates_of_change layer, 2023. Rates are derived from sub-pixel
+            shoreline extraction and carry per-transect uncertainty; individual points should not be read as precise
+            local measurements.</p>
         </div>
-        <!-- Sticky visual — the map block is re-parented here by main.js -->
         <div class="map-beat__visual" id="beat-6-visual"></div>
       </section>
 
-    </main>
-  </div><!-- /.layout -->
+      <!-- ══ BEAT 7 · coda ═════════════════════════════════════ -->
+      <section class="step step--map map-beat" data-beat="7" id="beat-7">
+        <div class="map-beat__text">
+          <div class="narrative-card narrative-card--final">
+            <span class="beat-label">Where the chain is felt</span>
+            <h2>The line is where a home was</h2>
+            <p>Cyclone Winston made landfall in Fiji on 20 February 2016 — the most intense tropical cyclone recorded
+              in the Southern Hemisphere at landfall.</p>
+            <p class="stat"><strong><span class="count-up" data-target="633584" data-suffix="">0</span>
+                people</strong> were directly affected.</p>
+            <p>Winston is not offered here as proof of the cascade. It is what the cascade is <em>about</em>: the
+              gap between a shoreline that moves a few metres a year and a shoreline that moves in one afternoon.
+              The mechanisms in this piece govern how far that afternoon reaches inland, and how often it comes.</p>
 
-  <!-- ── FOOTER ──────────────────────────────────────────── -->
+            <blockquote class="honesty-note honesty-note--tight">
+              ⚠ Attributing a single storm to warming is a hard scientific claim and nothing on this page
+              demonstrates it. Winston also formed during the 2015–16 El Niño, the same event marked on the charts
+              above. What is defensible: warmer seas raise the intensity ceiling available to cyclones, a flatter
+              reef dissipates less of the resulting wave energy, and higher mean water lets surge start from a
+              higher point. Those are three mechanisms, not an attribution.
+            </blockquote>
+            <p class="note">SPC Pacific Data Hub · VC_DSR_AFFCT indicator · verified single-event record</p>
+          </div>
+        </div>
+        <div class="map-beat__visual" id="beat-7-visual"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ══ FOOTER ══════════════════════════════════════════════ -->
   <footer class="site-footer">
     <div class="footer-inner">
       <h3>Data &amp; methodology</h3>
       <div class="footer-grid">
         <div>
           <h4>Climate indicators</h4>
-          <p>SPC Pacific Data Hub · DF_CLIMATE_CHANGE dataset (ST_ANOM, SST_ANOM, SEA_LVL, RAIN_ANOM, GHG_EMI_CAPITA).
-            Raw CSVs parsed in-browser; no pre-baked JSON.</p>
+          <p>SPC Pacific Data Hub · DF_CLIMATE_CHANGE (ST_ANOM, SST_ANOM, SEA_LVL, RAIN_ANOM, GHG_EMI_CAPITA).
+            Raw CSVs parsed in-browser; no pre-baked JSON. Temperature anomalies are vs <strong>1971–2000</strong>
+            (NOAAGlobalTemp v6.0.0); sea level vs <strong>1993–2012</strong> (Copernicus DUACS DT2024).</p>
         </div>
         <div>
           <h4>Disaster data</h4>
-          <p>SPC · VC_DSR_AFFCT indicator only. Other affected-persons indicators in the file mix units (persons with
-            economic loss in USD) and are not used here.</p>
+          <p>SPC · VC_DSR_AFFCT indicator only. The other affected-persons indicators in that file mix units
+            (persons alongside economic loss in USD) and are not used here.</p>
         </div>
         <div>
           <h4>Coastline</h4>
-          <p>Digital Earth Pacific · Landsat annual shorelines 1999–2023 + rates_of_change layer (10.4 M transects).
-            Served via <a href="https://digitalearthpacific.org" target="_blank"
-              rel="noopener">digitalearthpacific.org</a>.</p>
+          <p>Digital Earth Pacific · Landsat annual shorelines 1999–2023 and the rates_of_change layer. Served via
+            <a href="https://digitalearthpacific.org" target="_blank" rel="noopener">digitalearthpacific.org</a>.
+          </p>
         </div>
         <div>
-          <h4>Coral</h4>
-          <p>GCRMN Status and Trends of Coral Reefs of the Pacific, 1980–2023 (DOI 10.59387/WIUJ2936). Bleaching
-            mechanism: Carlot et al. 2023 (<em>Sci. Reports</em>), Ferrario et al. 2014. USGS Mo'orea coral-cover
-            series.</p>
+          <h4>Reef</h4>
+          <p>GCRMN, <em>Status and Trends of Coral Reefs of the Pacific: 1980–2023</em> (DOI 10.59387/WIUJ2936).
+            Wave mechanics: Ferrario et al. 2014; Carlot et al. 2023. Island geomorphology: Duvat 2019;
+            Kench et al. 2018.</p>
         </div>
       </div>
-      <p class="footer-honesty">Sea-level values are reported at 0.1 m resolution and shown as a regional trend only.
-        The coral beat references a site-level dataset (Mo'orea) + Pacific-wide GCRMN trend — not per-country coral
-        data. All interpolations are flagged in context.</p>
+
+      <details class="corrections">
+        <summary>Corrections and known limits — what changed in this revision, and why</summary>
+        <ol>
+          <li><strong>Coral cover.</strong> An earlier version claimed the Pacific had lost ~50% of living coral
+            cover since the 1980s and cited the GCRMN Pacific report for it. That report finds cover broadly stable
+            at ~25.5% (1990–2022). The claim was removed and the beat rebuilt around the finding the report does
+            support: a compositional shift away from branching forms, reducing structural complexity.</li>
+          <li><strong>Temperature baseline.</strong> Axes previously read "vs 1850–1900". The SPC metadata specifies
+            <strong>1971–2000</strong>. Corrected on every chart and stated inside the chart so it cannot drift from
+            the copy.</li>
+          <li><strong>Bleaching threshold.</strong> A "+1&nbsp;°C bleaching-stress threshold" was drawn on an annual
+            mean anomaly. Bleaching stress is Degree Heating Weeks above a site's Maximum Monthly Mean — an annual
+            mean cannot express it. The line rendered for only 9 of 22 countries and was sometimes triggered by the
+            land series. Replaced with observed global bleaching events.</li>
+          <li><strong>Land vs sea comparison.</strong> Removed. The two series correlate at r&nbsp;=&nbsp;0.96–0.99
+            with a mean difference below the data's own rounding step; they are effectively the same line.</li>
+          <li><strong>Uncertainty.</strong> The ERROR_VAL / ERROR_TYPE columns are now loaded and drawn as a ±1
+            standard-error ribbon. Tooltips print one decimal, matching the 0.1&nbsp;°C resolution of the data.</li>
+          <li><strong>ENSO.</strong> Added as an annotation layer across the temperature, sea level and rainfall
+            beats. It is the dominant driver of Pacific interannual variability and was previously invisible, which
+            invited readers to attribute it to the emissions trend.</li>
+          <li><strong>Emissions scale.</strong> Moved to a logarithmic axis so the sub-4&nbsp;t cluster is legible.
+            Palau, Nauru, Guam, the Marshall Islands, N.&nbsp;Mariana Is. and American Samoa are flagged as export
+            artifacts rather than explained as footprints.</li>
+          <li><strong>Rainfall.</strong> Changed from a single-year snapshot to a ten-year mean, because the
+            surrounding copy makes trend claims. The single year is retained as a dot to show spread.</li>
+          <li><strong>Coastline framing.</strong> Rewritten to engage the atoll geomorphology literature
+            (Duvat 2019; Kench et al. 2018) rather than assert simple retreat, which the measurements do not support.
+          </li>
+          <li><strong>Exposure.</strong> Added as its own beat. The stated arc is hazard → exposure → impact and the
+            middle term was previously absent.</li>
+        </ol>
+        <p><strong>Still open.</strong> Sea level is quantised to 0.1&nbsp;m in this export and should be re-fetched
+          at source resolution. The exposure beat uses published regional headline figures rather than a per-country
+          dataset. Digital Earth Pacific publishes a per-transect certainty flag that this map does not yet filter
+          on.</p>
+      </details>
+
       <p class="footer-credit">Pacific DataViz Challenge 2026 · <em>The Line That Moves</em></p>
     </div>
   </footer>
 
-  <!-- ── LIBS ─────────────────────────────────────────────── -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
-
-  <script type="module" src="js/main.js?v=6"></script>
-
-
-
+  <script type="module" src="js/main.js?v=7"></script>
 
 </body>
 

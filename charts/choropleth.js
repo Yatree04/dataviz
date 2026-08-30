@@ -3,6 +3,8 @@
 // Uses Natural Earth GeoJSON (110m) filtered to Pacific countries.
 // API: renderChoropleth(container, emissionsData) → { update, destroy }
 
+import { SUSPECT_GHG } from '../js/data.js?v=7';
+
 const PACIFIC_ISOS = new Set([
     'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'KIR', 'MHL', 'FSM',
     'PLW', 'TUV', 'NRU', 'COK', 'NIU', 'TKL', 'WLF', 'PYF', 'NCL',
@@ -129,11 +131,29 @@ export async function renderChoropleth(container, emissionsData, opts = {}) {
 
     const emissions = buildLookup(emissionsData);
     const values = Object.values(emissions).map(d => d.value).filter(v => v > 0);
-    const maxVal = d3.max(values) || 20;
 
-    function getColor(val) {
+    // ── LOG BINNING ────────────────────────────────────────────────────────
+    // The old scale was `val / maxVal` with maxVal = Palau's 86.7. That put every
+    // other Pacific nation in the first colour bin, so the map rendered as one flat
+    // tone and carried no information. The data spans three orders of magnitude
+    // (0.1 → 86.7 t), so it needs a log scale.
+    //
+    // maxVal is computed from TRUSTED series only. Palau's series is an export
+    // artifact (190.6 t/capita in 1970, falling ~60% since) and must not be allowed
+    // to set the top of the ramp for everyone else.
+    const trustedValues = Object.entries(emissions)
+        .filter(([country]) => !SUSPECT_GHG.has(country))
+        .map(([, d]) => d.value)
+        .filter(v => v > 0);
+
+    const LO = 0.1;
+    const HI = Math.max(d3.max(trustedValues) || 4, 1);
+
+    function getColor(val, country) {
         if (val == null || val <= 0) return COLOR_NODATA;
-        const t = Math.min(val / maxVal, 1);
+        if (country && SUSPECT_GHG.has(country)) return 'url(#choro-suspect-hatch)';
+        const t = Math.min(Math.max(
+            (Math.log10(val) - Math.log10(LO)) / (Math.log10(HI) - Math.log10(LO)), 0), 1);
         const idx = Math.min(Math.floor(t * COLOR_SCALE.length), COLOR_SCALE.length - 1);
         return COLOR_SCALE[idx];
     }
@@ -189,7 +209,7 @@ export async function renderChoropleth(container, emissionsData, opts = {}) {
         .attr('d', path)
         .attr('fill', f => {
             const d = featureValue(f);
-            return d ? getColor(d.value) : COLOR_LAND;
+            return d ? getColor(d.value, featureName(f)) : COLOR_LAND;
         })
         .attr('stroke', '#fff')
         .attr('stroke-width', 0.5)
@@ -241,13 +261,26 @@ export async function renderChoropleth(container, emissionsData, opts = {}) {
         });
 
     // ── Legend ─────────────────────────────────────────────
+    // Hatch pattern def for flagged series (appended to the map svg).
+    const _defs = svg.append('defs');
+    const _pat = _defs.append('pattern')
+        .attr('id', 'choro-suspect-hatch')
+        .attr('width', 5).attr('height', 5)
+        .attr('patternUnits', 'userSpaceOnUse')
+        .attr('patternTransform', 'rotate(45)');
+    _pat.append('rect').attr('width', 5).attr('height', 5).attr('fill', '#e7e3d9');
+    _pat.append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 5)
+        .attr('stroke', '#b8b2a6').attr('stroke-width', 2);
+
     const legendContainer = document.createElement('div');
     legendContainer.className = 'choropleth-legend';
     legendContainer.innerHTML = `
-    <span>Low</span>
+    <span>${LO} t</span>
     ${COLOR_SCALE.map(c => `<span class="legend-block" style="background:${c}"></span>`).join('')}
-    <span>High</span>
-    <span style="margin-left:auto;font-style:italic">tCO₂e per capita</span>
+    <span>${HI.toFixed(0)} t</span>
+    <span class="legend-hatch" title="Series flagged as an export artifact"></span>
+    <span>flagged</span>
+    <span style="margin-left:auto;font-style:italic">t CO₂ per capita · log scale</span>
   `;
     el.appendChild(legendContainer);
 
