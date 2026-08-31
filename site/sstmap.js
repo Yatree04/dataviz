@@ -314,9 +314,10 @@ export async function buildSSTMap(D) {
         plotLines: [{ id: 'zero', value: 0, color: '#DDD', width: 1, zIndex: 1 }],
       },
       tooltip: {
-        useHTML: true, shared: false, backgroundColor: 'rgba(255,255,255,0.97)',
+        useHTML: true, shared: true, backgroundColor: 'rgba(255,255,255,0.97)',
         borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 4, shadow: false,
         style: { fontSize: '12px' },
+        headerFormat: '<span class="tt-year">{point.key}</span><br>',
       },
       plotOptions: {
         series: {
@@ -349,18 +350,28 @@ export async function buildSSTMap(D) {
     const longTerm = vals.reduce((a, b) => a + b, 0) / vals.length;
 
     const sub = document.getElementById('detail-sub');
-    if (sub) {
-      sub.textContent = `Surface temperature anomaly · every reported year `
-        + `· dashed line is this territory's long-term mean ${fmt(longTerm)} °C `
-        + `· grey is the Pacific regional mean`;
+    if (sub) sub.textContent = `Surface temperature anomaly · ${Y_MIN}–${Y_MAX}`;
+
+    const key = document.getElementById('detail-key');
+    if (key) {
+      key.innerHTML =
+        `<span class="dk"><i class="dk-line" style="background:${COLORS.accent}"></i>`
+        + `${countryName(iso)}</span>`
+        + `<span class="dk"><i class="dk-line" style="background:#9C968B"></i>Pacific mean</span>`
+        + `<span class="dk"><i class="dk-dash"></i>its long-term mean ${fmt(longTerm)} °C</span>`;
     }
 
     const c = ensureDetailChart();
     while (c.series.length) c.series[0].remove(false);
 
     c.addSeries({
-      name: 'Pacific regional mean', data: mean, color: '#C7C2B8',
-      lineWidth: 1, zIndex: 1, enableMouseTracking: false,
+      name: 'Pacific mean', data: mean, color: '#9C968B',
+      lineWidth: 1.2, zIndex: 1,
+      tooltip: {
+        pointFormatter() {
+          return `<span class="tt-ref">Pacific mean ${fmt(this.y)} °C</span><br>`;
+        },
+      },
     }, false);
     c.addSeries({
       name: countryName(iso), data: own, color: COLORS.accent,
@@ -368,10 +379,8 @@ export async function buildSSTMap(D) {
       states: { hover: { lineWidth: 1.5 } },
       tooltip: {
         pointFormatter() {
-          return `<span class="tt-name">${countryName(iso)}</span><br>`
-            + `<span class="tt-year">${this.x}</span> &nbsp; `
-            + `<span class="tt-val">${fmt(this.y)} °C</span><br>`
-            + `<span class="tt-ref">${fmt(this.y - longTerm)} against its long-term mean</span>`;
+          return `<span class="tt-name">${countryName(iso)}</span> `
+            + `<span class="tt-val">${fmt(this.y)} °C</span><br>`;
         },
       },
       // Hovering the record moves the map to that year, so the two halves of
