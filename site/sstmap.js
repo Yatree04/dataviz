@@ -13,8 +13,8 @@
 import { COLORS, COORDS, ENSO_EVENTS, countryName } from './data.js';
 
 const FONT = { fontFamily: 'Inter, sans-serif' };
-const LAND = '#E9E5DC';
-const LAND_EDGE = '#C9C2B4';
+const NO_DATA = '#EFECE6';
+const NO_DATA_EDGE = '#DAD5CB';
 
 /** Anomaly -> the page's existing blue/cream/red language.
  *  The domain is +-1.2, not the series' full -2.0..+1.1 extent: the 1st and
@@ -35,13 +35,16 @@ export async function buildSSTMap(D) {
   const host = document.getElementById('chart-sst-map');
   if (!host || typeof Highcharts.mapChart !== 'function') return;
 
-  let geo;
+  let geo, world;
   try {
-    geo = await fetch('data/pacific.geo.json').then((r) => r.json());
+    [geo, world] = await Promise.all([
+      fetch('data/pacific.geo.json').then((r) => r.json()),
+      fetch('data/world.geo.json').then((r) => r.json()),
+    ]);
   } catch (e) {
     host.classList.add('pending');
     host.innerHTML = '<div><p class="pending-title">Pacific geometry did not load</p>'
-      + '<p class="pending-body">data/pacific.geo.json could not be read.</p></div>';
+      + '<p class="pending-body">The vendored map geometry could not be read.</p></div>';
     return;
   }
 
@@ -132,10 +135,10 @@ export async function buildSSTMap(D) {
       backgroundColor: 'transparent', animation: { duration: 420 }, height: 620,
       style: FONT, spacing: [4, 4, 4, 4],
     },
-    // No hardcoded centre or zoom: the vendored geometry is Pacific-only, so
-    // fitting its bounds is the Pacific overview, and it stays right at any
-    // container width. A fixed zoom here sat below the view's own minZoom and
-    // was silently clamped on the first drill-up.
+    // A whole-world view, rotated so the Pacific sits in the middle rather than
+    // being cut in half by the antimeridian. No hardcoded zoom: a fixed one sat
+    // below the view's own minZoom and was silently clamped on the first
+    // drill-up, so the overview is taken from fitToBounds instead.
     mapView: { projection: { name: 'EqualEarth', rotation: [-180] } },
     mapNavigation: {
       enabled: true,
@@ -162,31 +165,46 @@ export async function buildSSTMap(D) {
       },
     },
     series: [
-      // 1 — every Pacific territory as land, including the ones with no series
+      // 0 — the rest of the world. This dataset observes 21 Pacific territories
+      // and nothing else, so every other country is drawn as explicitly
+      // unmeasured rather than being given a colour it has not earned.
       {
-        type: 'map', mapData: geo, nullColor: LAND,
-        borderColor: LAND_EDGE, borderWidth: 0.7,
-        enableMouseTracking: false, showInLegend: false, zIndex: 0,
+        type: 'map', id: 'world-base', mapData: world, nullColor: NO_DATA,
+        borderColor: NO_DATA_EDGE, borderWidth: 0.4, zIndex: 0,
+        showInLegend: false,
+        tooltip: {
+          pointFormatter() {
+            return `<span class="tt-name">${this.name || 'â€”'}</span><br>`
+              + '<span class="tt-ref">no sea-surface observation in this dataset</span>';
+          },
+        },
+      },
+      // 1 — Pacific territories as land, including any with no series
+      {
+        type: 'map', id: 'pac-base', mapData: geo, nullColor: NO_DATA,
+        borderColor: NO_DATA_EDGE, borderWidth: 0.5,
+        enableMouseTracking: false, showInLegend: false, zIndex: 1,
       },
       // 2 — the observation itself, painted onto the territory
       {
         type: 'map', id: 'sst-area', mapData: geo, joinBy: ['iso', 'iso'],
-        data: choropleth(Y_MAX),
-        borderColor: 'rgba(25,25,25,0.28)', borderWidth: 0.7, zIndex: 1,
+        data: choropleth(Y_MAX), allowPointSelect: true, cursor: 'pointer',
+        states: { select: { borderColor: COLORS.ink, borderWidth: 2 } },
+        borderColor: 'rgba(25,25,25,0.28)', borderWidth: 0.7, zIndex: 2,
         states: { hover: { borderColor: COLORS.ink, borderWidth: 1.4, brightness: 0 } },
         tooltip: { pointFormatter() { return tooltipFor(this.iso); } },
       },
       // 3 — a marker per observation, so atolls stay findable at Pacific zoom
       {
-        type: 'mappoint', id: 'sst-point', data: markers(Y_MAX), zIndex: 2,
-        colorKey: 'colorValue',
+        type: 'mappoint', id: 'sst-point', data: markers(Y_MAX), zIndex: 3,
+        colorKey: 'colorValue', allowPointSelect: true, cursor: 'pointer',
         marker: { symbol: 'circle', radius: 7, lineWidth: 0.8, lineColor: 'rgba(25,25,25,0.30)' },
         dataLabels: { enabled: false },
         tooltip: { pointFormatter() { return tooltipFor(this.iso); } },
       },
       // 4 — the selected territory's own islands, drawn only once drilled in
       {
-        type: 'mappoint', id: 'sel-parts', data: [], zIndex: 3,
+        type: 'mappoint', id: 'sel-parts', data: [], zIndex: 4,
         colorKey: 'colorValue', enableMouseTracking: false,
         marker: { symbol: 'circle', radius: 3, lineWidth: 1, lineColor: 'rgba(25,25,25,0.7)' },
         dataLabels: { enabled: false },
@@ -230,9 +248,9 @@ export async function buildSSTMap(D) {
   function paintCrumb() {
     if (!crumb) return;
     crumb.innerHTML = selected
-      ? `<button class="crumb-link" data-up="1">Pacific</button>`
+      ? `<button class="crumb-link" data-up="1">World</button>`
         + `<span class="crumb-sep">/</span><span class="crumb-here">${countryName(selected)}</span>`
-      : `<span class="crumb-here">Pacific</span>`;
+      : `<span class="crumb-here">World</span>`;
   }
 
   function drillTo(iso) {
@@ -269,42 +287,22 @@ export async function buildSSTMap(D) {
   }
 
   // ── the territory's own record, over time ─────────────────────────────────
-  function showDetail(iso) {
-    if (!detail) return;
-    detail.hidden = false;
-    if (detailTitle) detailTitle.textContent = countryName(iso);
-    const sub = document.getElementById('detail-sub');
-
-    // Actual observations only. Years the file does not report stay absent, and
-    // a null breaks the line rather than drawing across a gap that isn't there.
-    const own = [];
-    for (let y = Y_MIN; y <= Y_MAX; y++) own.push([y, valueAt(iso, y)]);
-    const mean = [];
-    for (let y = Y_MIN; y <= Y_MAX; y++) {
-      mean.push([y, Number.isFinite(regionalAt[y]) ? regionalAt[y] : null]);
-    }
-
-    // The territory's own long-term mean, over its whole record — the
-    // reference the anomaly is read against.
-    const vals = own.map((p) => p[1]).filter((v) => v !== null);
-    const longTerm = vals.reduce((a, b) => a + b, 0) / vals.length;
-
-    if (sub) {
-      sub.textContent = `Sea-surface temperature anomaly · every reported year `
-        + `· dashed line is ${countryName(iso)}'s long-term mean ${fmt(longTerm)} °C `
-        + `· grey is the Pacific regional mean`;
-    }
-
-    if (detailChart) detailChart.destroy();
+  // Built once and re-fed per country, rather than rebuilt on every drilldown:
+  // the chart is a fixed frame and the country is what changes inside it.
+  function ensureDetailChart() {
+    if (detailChart) return detailChart;
     detailChart = Highcharts.chart('detail-chart', {
-      chart: { backgroundColor: 'transparent', height: 280, style: FONT, spacing: [8, 2, 4, 2] },
+      chart: {
+        backgroundColor: 'transparent', height: 280, style: FONT,
+        spacing: [8, 2, 4, 2], animation: { duration: 450 },
+      },
       title: { text: null },
       credits: { enabled: false },
       legend: { enabled: false },
       xAxis: {
         min: Y_MIN, max: Y_MAX, tickInterval: 25, lineColor: '#E2E8F0', tickLength: 0,
+        crosshair: { width: 1, color: 'rgba(25,25,25,0.18)' },
         labels: { style: { fontSize: '10px', color: COLORS.light } },
-        // ENSO, the same shading the sea-level chart uses.
         plotBands: ENSO_EVENTS.map((e) => ({
           from: e.start - 0.5, to: e.end + 0.5,
           color: e.phase === 'el-nino' ? 'rgba(217,95,82,0.07)' : 'rgba(74,144,226,0.07)',
@@ -314,22 +312,12 @@ export async function buildSSTMap(D) {
       yAxis: {
         title: { text: null }, gridLineColor: COLORS.grid,
         labels: { format: '{value:.1f}°C', style: { fontSize: '10px', color: COLORS.light } },
-        plotLines: [
-          { value: 0, color: '#DDD', width: 1, zIndex: 1 },
-          {
-            value: longTerm, color: COLORS.accent, width: 1, dashStyle: 'Dash', zIndex: 2,
-          },
-        ],
+        plotLines: [{ id: 'zero', value: 0, color: '#DDD', width: 1, zIndex: 1 }],
       },
       tooltip: {
         useHTML: true, shared: false, backgroundColor: 'rgba(255,255,255,0.97)',
         borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 4, shadow: false,
         style: { fontSize: '12px' },
-        pointFormatter() {
-          return `<span class="tt-year">Year ${this.x}</span><br>`
-            + `<span class="tt-val">SST anomaly ${fmt(this.y)} °C</span><br>`
-            + `<span class="tt-ref">${fmt(this.y - longTerm)} against this territory's mean</span>`;
-        },
       },
       plotOptions: {
         series: {
@@ -337,26 +325,72 @@ export async function buildSSTMap(D) {
           connectNulls: false,
         },
       },
-      series: [
-        {
-          name: 'Pacific regional mean', data: mean, color: '#C7C2B8',
-          lineWidth: 1, zIndex: 1, enableMouseTracking: false,
-        },
-        {
-          name: countryName(iso), data: own, color: COLORS.accent,
-          lineWidth: 1.5, zIndex: 2,
-          states: { hover: { lineWidth: 1.5 } },
-          // Hovering the record moves the map to that year, so the two halves
-          // of the drilldown stay one object rather than two charts.
-          point: { events: { mouseOver() { scrubTo(this.x); } } },
-        },
-        {
-          id: 'cursor-point', type: 'scatter', data: cursorPoint(iso),
-          color: COLORS.ink, zIndex: 3, enableMouseTracking: false,
-          marker: { enabled: true, radius: 4, symbol: 'circle' },
-        },
-      ],
+      series: [],
     });
+    return detailChart;
+  }
+
+  function showDetail(iso) {
+    if (!detail) return;
+    detail.hidden = false;
+    if (detailTitle) detailTitle.textContent = countryName(iso);
+
+    // Actual observations only. Years the file does not report stay absent, and
+    // a null breaks the line rather than drawing across a gap that isn't there.
+    const own = [];
+    const mean = [];
+    for (let y = Y_MIN; y <= Y_MAX; y++) {
+      own.push([y, valueAt(iso, y)]);
+      mean.push([y, Number.isFinite(regionalAt[y]) ? regionalAt[y] : null]);
+    }
+
+    // The territory's own long-term mean, over its whole record — the reference
+    // the anomaly is read against.
+    const vals = own.map((p) => p[1]).filter((v) => v !== null);
+    const longTerm = vals.reduce((a, b) => a + b, 0) / vals.length;
+
+    const sub = document.getElementById('detail-sub');
+    if (sub) {
+      sub.textContent = `Sea-surface temperature anomaly · every reported year `
+        + `· dashed line is ${countryName(iso)}'s long-term mean ${fmt(longTerm)} °C `
+        + `· grey is the Pacific regional mean`;
+    }
+
+    const c = ensureDetailChart();
+    while (c.series.length) c.series[0].remove(false);
+
+    c.addSeries({
+      name: 'Pacific regional mean', data: mean, color: '#C7C2B8',
+      lineWidth: 1, zIndex: 1, enableMouseTracking: false,
+    }, false);
+    c.addSeries({
+      name: countryName(iso), data: own, color: COLORS.accent,
+      lineWidth: 1.5, zIndex: 2,
+      states: { hover: { lineWidth: 1.5 } },
+      tooltip: {
+        pointFormatter() {
+          return `<span class="tt-name">${countryName(iso)}</span><br>`
+            + `<span class="tt-year">${this.x}</span> &nbsp; `
+            + `<span class="tt-val">${fmt(this.y)} °C</span><br>`
+            + `<span class="tt-ref">${fmt(this.y - longTerm)} against its long-term mean</span>`;
+        },
+      },
+      // Hovering the record moves the map to that year, so the two halves of
+      // the drilldown stay one object rather than two charts.
+      point: { events: { mouseOver() { scrubTo(this.x); } } },
+    }, false);
+    c.addSeries({
+      id: 'cursor-point', type: 'scatter', data: cursorPoint(iso),
+      color: COLORS.ink, zIndex: 3, enableMouseTracking: false,
+      marker: { enabled: true, radius: 4, symbol: 'circle' },
+    }, false);
+
+    c.yAxis[0].removePlotLine('ltm');
+    c.yAxis[0].addPlotLine({
+      id: 'ltm', value: longTerm, color: COLORS.accent,
+      width: 1, dashStyle: 'Dash', zIndex: 2,
+    });
+    c.redraw();
   }
 
   const cursorPoint = (iso) => {
