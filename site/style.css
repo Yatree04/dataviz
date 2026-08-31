@@ -457,6 +457,32 @@ footer p:last-child { margin-bottom: 0; }
   flex-shrink: 0;
 }
 
+.detail-flag { margin-right: 0.4rem; font-size: 1.05em; }
+
+/* The information block: what the rest of the project knows about the
+   selected territory. A plain list, not a row of cards. */
+.detail-facts {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0 0.125rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+}
+.fx {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.1875rem 0;
+}
+.fx-k { color: var(--muted-foreground); white-space: nowrap; }
+.fx-v {
+  color: var(--foreground);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.fx-sub { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.fx-none { color: var(--muted-foreground); font-style: italic; }
+
 .detail-close {
   position: absolute;
   top: 0.5rem;

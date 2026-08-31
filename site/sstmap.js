@@ -35,6 +35,13 @@ const COLOR_AXIS = {
   stops: [[0, COLORS.blue], [0.5, '#F4F1EA'], [1, COLORS.red]],
 };
 
+// ISO-3166 alpha-2 -> the regional-indicator pair that renders as that flag.
+// Derived from the code the dataset already carries, so it needs no sprite
+// sheet, no CDN and no per-country asset.
+const flagOf = (iso) => (/^[A-Z]{2}$/.test(iso)
+  ? iso.replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
+  : '');
+
 export async function buildSSTMap(D) {
   const host = document.getElementById('chart-sst-map');
   if (!host || typeof Highcharts.mapChart !== 'function') return;
@@ -353,6 +360,50 @@ export async function buildSSTMap(D) {
     return detailChart;
   }
 
+  // What else this project knows about a territory. Every row is read from a
+  // dataset already loaded; anything the source does not report says so rather
+  // than being filled in or quietly dropped.
+  function factsFor(iso) {
+    const name = countryName(iso);
+    const rows = [];
+    const num = (v, d = 2) => `${v > 0 ? '+' : v < 0 ? '\u2212' : ''}${Math.abs(v).toFixed(d)}`;
+
+    const own = D.stByCountry[name] || [];
+    if (own.length) {
+      const warmest = own.reduce((a, b) => (b[1] > a[1] ? b : a));
+      rows.push(['Warmest year', `${warmest[0]} &nbsp;<span class="fx-sub">${num(warmest[1])} °C</span>`]);
+    }
+
+    const sea = D.sstByCountry[name];
+    if (sea && sea.length) {
+      const last = sea[sea.length - 1];
+      rows.push(['Sea-surface', `${num(last[1])} °C <span class="fx-sub">${last[0]}</span>`]);
+    } else {
+      rows.push(['Sea-surface', '<span class="fx-none">no series in this file</span>']);
+    }
+
+    const ghg = (D.ghgLatest || []).find((g) => g.country === name);
+    if (ghg) {
+      rows.push(['Emissions', ghg.suspect
+        ? `<span class="fx-none">${ghg.val.toFixed(1)} t/capita — not usable</span>`
+        : `${ghg.val.toFixed(1)} t/capita <span class="fx-sub">${ghg.year}</span>`]);
+    }
+
+    const rain = (D.rainTrends || []).find((r) => r.country === name);
+    if (rain) {
+      rows.push(['Rainfall trend', `${num(rain.trend, 1)} mm/decade`
+        + (rain.atoll ? ' <span class="fx-sub">atoll state</span>' : '')]);
+    }
+
+    const water = (D.waterChange || []).find((w) => w.country === name);
+    const gap = (D.waterGaps || []).find((w) => w.country === name);
+    if (water) {
+      rows.push(['Safe water', `${water.end.toFixed(1)}% <span class="fx-sub">${water.lastYear}`
+        + (gap ? ` · urban +${gap.gap.toFixed(1)} pts` : '') + '</span>']);
+    }
+    return rows;
+  }
+
   function refreshDetail() {
     if (!detail) return;
     if (!selection.length) {
@@ -364,9 +415,20 @@ export async function buildSSTMap(D) {
 
     const many = selection.length > 1;
     if (detailTitle) {
-      detailTitle.textContent = many
+      detailTitle.innerHTML = many
         ? `Comparing ${selection.length} territories`
-        : countryName(selection[0]);
+        : `<span class="detail-flag">${flagOf(selection[0])}</span>${countryName(selection[0])}`;
+    }
+
+    // The reference shows a flag and a name; the facts are the extension of
+    // that idea into the rest of this project's data. Only for one territory —
+    // a comparison has no single set of readings.
+    const facts = document.getElementById('detail-facts');
+    if (facts) {
+      facts.innerHTML = many ? '' : factsFor(selection[0])
+        .map(([k, v]) => `<div class="fx"><span class="fx-k">${k}</span><span class="fx-v">${v}</span></div>`)
+        .join('');
+      facts.hidden = many;
     }
 
     // Actual observations only. Years the file does not report stay absent, and
