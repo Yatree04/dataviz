@@ -401,10 +401,11 @@ footer p:last-child { margin-bottom: 0; }
   width: 12px;
   height: 8px;
   border-radius: 2px;
-  background: #EFECE6;
-  border: 1px solid #DAD5CB;
+  background: #E4E2DE;
+  border: 1px dashed #B9B4AC;
   margin-left: 0.75rem;
 }
+.key-shore { background: linear-gradient(to right, #C1362F, #F4F1EA, #2A78D6) !important; }
 .key-ramp {
   width: 110px;
   height: 7px;

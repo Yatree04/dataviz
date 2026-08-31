@@ -11,6 +11,7 @@
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/highcharts-more.js"></script>
 <script src="https://code.highcharts.com/maps/modules/map.js"></script>
+<script src="https://code.highcharts.com/modules/tilemap.js"></script>
 </head>
 <body class="highcharts-light">
 
@@ -226,16 +227,16 @@
         above.</p>
     </section>
 
-    <section class="s-md">
+    <section class="s-md map-section">
       <p class="label">Shoreline change · Digital Earth Pacific · rates of change (m/year)</p>
-      <div class="chart pending" id="chart-shoreline">
-        <div>
-          <p class="pending-title">Not drawn — the geometry is not in this repository</p>
-          <p class="pending-body">The rates-of-change layer is vector geometry
-            (<code>.pmtiles</code> / <code>.gpkg</code>), not a CSV, and the tile server it is
-            published from is unreachable from this build. Rather than draw a decorative coastline
-            that is not the measurement, this panel stays empty until the real layer is
-            attached.</p>
+      <p class="map-lede">One hexagon per territory, placed by its real coordinates. Colour is
+        the rate of change where the source reports one.</p>
+      <div class="chart" id="chart-shoreline"></div>
+      <div class="map-foot">
+        <p class="map-hint" id="shoreline-note"></p>
+        <div class="map-key">
+          <span>retreat</span><span class="key-ramp key-shore"></span><span>accretion</span>
+          <span class="key-nodata"></span><span>no data</span>
         </div>
       </div>
     </section>

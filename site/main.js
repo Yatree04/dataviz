@@ -5,6 +5,7 @@
 
 import { loadData, COLORS, ENSO_EVENTS, slope } from './data.js';
 import { buildSSTMap } from './sstmap.js';
+import { buildShorelineTilemap } from './shoreline.js';
 
 const FONT = { fontFamily: 'Inter, sans-serif' };
 const AXIS_LABEL = { style: { fontSize: '10px', color: COLORS.light } };
@@ -259,6 +260,9 @@ const setText = (sel, value) => {
 
   // ── 7. The map — Pacific overview, drilling into one territory ────────────
   await buildSSTMap(D);
+
+  // ── 7a. Shoreline change, one hexagon per territory ───────────────────────
+  await buildShorelineTilemap();
 
   // ── 7b. Sea-surface temperature, drawn as its own thing ───────────────────
   // A different indicator from the map above, so it gets a different form: one
