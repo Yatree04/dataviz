@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        const ghgData = await loadCSVData('dep_ls_coastlines/GHG_data.csv');
+        const ghgData = await loadCSVData('GHG_data.csv');
         ghgData.forEach(row => {
             const country = row['Pacific Island Countries and territories'];
             const year = row['TIME_PERIOD'];
@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 2. Sea Level Lines Chart ---
     try {
-        const seaTempData = await loadCSVData('dep_ls_coastlines/sea temp.csv');
+        const seaTempData = await loadCSVData('sea temp.csv');
         let sstByCountry = {};
 
         seaTempData.forEach(row => {
@@ -258,7 +258,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const val = row['OBS_VALUE'];
             const indicator = row['CLIMATE_CHANGE_INDICATORS'];
 
-            if (indicator !== 'ST_ANOM' && indicator !== 'SST_ANOM') return;
+            // SST_ANOM only. Accepting ST_ANOM as well wrote land surface
+            // temperature into the same country/year slot, and because a
+            // territory's ST_ANOM rows follow its SST_ANOM rows in this file,
+            // the land value won: American Samoa, Micronesia, Samoa, Papua New
+            // Guinea, Palau, Niue, Tuvalu, Kiribati and Nauru were plotting
+            // land temperature for all 176 years under a sea-surface title,
+            // and Pitcairn — which has no sea series at all — was listed as a
+            // 22nd territory. The regional mean was drawn from that mixture.
+            if (indicator !== 'SST_ANOM') return;
             if (!country || !year || val === undefined || val === null) return;
 
             if (!sstByCountry[country]) sstByCountry[country] = {};
