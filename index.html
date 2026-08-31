@@ -1,428 +1,389 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Line That Moves</title>
-  <meta name="description"
-    content="Satellites have measured the same Pacific coastlines every year since 1999. The lines have moved.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pacific Cascade</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Highcharts core and common modules -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://code.highcharts.com/modules/dumbbell.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 
 <body>
 
-  <!-- ═══ Navigation / Topbar ═══ -->
-  <nav class="top-nav">
-    <span class="eyebrow">PACIFIC DATAVIZ CHALLENGE 2026</span>
-    <span class="eyebrow nav-right">Climate Change</span>
-  </nav>
-
-  <main class="article-container">
-
-    <!-- ═══ Hero ═══ -->
-    <header class="hero">
-      <h1 class="hero-title">
-        The Line<br>
-        <span class="hero-italic">That Moves</span>
-      </h1>
-      <p class="hero-lead">Satellites have measured the same Pacific coastlines every year since 1999. The lines have
-        moved. This is an account of the physics that moved them — and of the one measure of coastal defence that nobody
-        in the Pacific is currently monitoring.</p>
-
-      <!-- Visual A (Placeholder for striped heat map from figma design part 1) -->
-      <div class="chart-container hero-chart-wrapper" id="chart-hero-stripes"></div>
-    </header>
-
-    <!-- ═══ Section 1: Shoreline (Beat 01) ═══ -->
-    <section class="beat" id="beat-01">
-      <div class="beat-header">
-        <span class="beat-number">01</span>
-        <span class="beat-title-kicker">THE PAYOFF, FIRST</span>
-      </div>
-      <h2>A coastline, measured twenty-five times</h2>
-      <p>Digital Earth Pacific traces Pacific shorelines from Landsat imagery once a year. The result is not a model or
-        a projection. It is twenty-five separate measurements of where the water met the land, and they do not sit on
-        top of each other.</p>
-
-      <div class="chart-container" id="chart-shoreline"></div>
-      <p class="caption">Drag to move through the annual shoreline positions, 1999–2023. Digital Earth Pacific, Landsat
-        annual shorelines.</p>
-    </section>
-
-    <!-- ═══ Section 2: The ledger (Beat 02) ═══ -->
-    <section class="beat" id="beat-02">
-      <div class="beat-header">
-        <span class="beat-number">02</span>
-        <span class="beat-title-kicker">THE LEDGER</span>
-      </div>
-      <h2>The forcing was not produced here</h2>
-      <p>Eleven of the seventeen Pacific series in the SPC emissions file sit below 4 tonnes of CO₂-equivalent per
-        person per year. Kiribati is at 0.9, the Solomon Islands at 0.8, Tuvalu at 0.4. New Caledonia, at 18.4, is an
-        outlier built on nickel smelting rather than on how anyone lives.</p>
-      <p>Six series in the same file are not usable. Palau is recorded at 190.6 tonnes per person in 1970 and 86.7 in
-        2024 — figures four times higher than any national total ever recorded anywhere. Nauru, the Marshall Islands,
-        Guam, American Samoa and the Northern Marianas are recorded as flat lines at 0.1–0.2 tonnes for fifty-five
-        consecutive years, which is not a measurement either. Those six are drawn hatched below and excluded from the
-        map.</p>
-
-      <div class="honesty-callout">
-        <p>Six of seventeen national series in <code>GHG_EMI_CAPITA</code> fail a plausibility check and are excluded
-          from the choropleth. They are shown hatched rather than hidden, because a gap you can see is more honest than
-          a country that quietly vanishes.</p>
-      </div>
-
-      <div class="chart-container" id="chart-ledger"></div>
-    </section>
-
-    <!-- ═══ Section 3: Where the heat went (Beat 03) ═══ -->
-    <section class="beat" id="beat-03">
-      <div class="beat-header">
-        <span class="beat-number">03</span>
-        <span class="beat-title-kicker">WHERE THE HEAT WENT — SST</span>
-      </div>
-      <h2>All ten of the warmest years on record are this century</h2>
-      <p>The SPC sea-surface temperature file runs from 1850 to 2025 for twenty-one countries and territories. Averaged
-        across all of them, the ten warmest years in that 176-year record are 2024, 2025, 2020, 2017, 2016, 2019, 2023,
-        2018, 2015 and 2022. There is no twentieth-century year in the list.</p>
-      <p>The regional mean sat at &minus;0.12 &deg;C through the 1961–1990 climatological baseline. Across 1995–2024 it
-        sits at +0.37 &deg;C. Against the 1850–1900 pre-industrial window the last ten years average +0.74 &deg;C. The
-        ocean absorbs roughly 91% of the excess energy in the climate system (IPCC AR6 WGI Ch. 9).</p>
-      <p>The sawtooth on top of the trend is ENSO. El Ni&ntilde;o years lift regional sea-surface temperature by several
-        tenths of a degree and La Ni&ntilde;a years pull it back; 2016 and 2024 are both El Ni&ntilde;o peaks. Any
-        Pacific series read without that band shading will look noisier than it is.</p>
-
-      <div class="chart-container" id="chart-heat"></div>
-    </section>
-
-    <!-- ═══ Section 04a: The sea gets bigger (Beat 04a) ═══ -->
-    <section class="beat" id="beat-04a">
-      <div class="beat-header">
-        <span class="beat-number">04a</span>
-        <span class="beat-title-kicker">THE SEA GETS BIGGER</span>
-      </div>
-      <h2>A regional signal built from unusable national ones</h2>
-      <p>The SPC sea-level file reports at 0.1-metre resolution. Every observation in it is one of five values:
-        &minus;0.2, &minus;0.1, 0.0, 0.1 or 0.2 metres. At that precision no single country's series means anything —
-        Kiribati reads 0.0 for its first three years because the true value rounded to zero, not because the sea stood
-        still.</p>
-      <p>Averaged across all twenty-one territories, the quantisation error cancels. The regional mean rises at
-        <strong>4.3 mm per year across 1993–2023</strong>, which is within the range satellite altimetry independently
-        reports for the tropical Pacific. The dataset cannot answer which island is worst affected. It can answer
-        whether the Pacific is rising, and it says yes.</p>
-
-      <div class="honesty-callout">
-        <p>Individual country sea-level series are not plotted here, at any zoom level, because 0.1 m resolution cannot
-          support a country comparison. Only the 21-territory mean is shown.</p>
-      </div>
-
-      <div class="chart-container" id="chart-sea-level"></div>
-    </section>
-
-    <!-- ═══ Section 04b: The rain moves (Beat 04b) ═══ -->
-    <section class="beat" id="beat-04b">
-      <div class="beat-header">
-        <span class="beat-number">04b</span>
-        <span class="beat-title-kicker">THE RAIN MOVES</span>
-      </div>
-      <h2>The islands with no rivers are the ones drying out</h2>
-      <p>Rainfall anomaly is not moving in one direction across the Pacific. Fitting a linear trend to each of the
-        twenty-two national series in <code>RAIN_ANOM</code> (1979–2025) splits the region almost evenly: eight
-        countries drying, fourteen wetting.</p>
-      <p>The split is not random. The four fastest-drying territories are Nauru (&minus;4.9 mm per decade), New
-        Caledonia (&minus;4.0), Kiribati (&minus;2.3) and Tuvalu (&minus;2.0). Three of those four are low atoll states
-        with no rivers, no lakes and no highland catchment. They hold fresh water in a thin lens floating on seawater
-        beneath the sand, recharged by rain and by nothing else.</p>
-      <p>Tonga (+5.2 mm per decade), Micronesia (+4.4), Niue (+4.3) and the Solomon Islands (+4.1) are getting wetter.
-        Neither direction is neutral. Infrastructure, cropping calendars and catchment sizing were built for the
-        distribution that used to hold.</p>
-      <p>Nauru's year-to-year standard deviation is 30.7 mm — nearly three times New Caledonia's 14.3 mm on a far
-        smaller land area. The trend is downward and the variance around it is the largest in the region.</p>
-
-      <div class="chart-container" id="chart-rain-multiples"></div>
-      <p class="caption">Linear trend fitted to annual precipitation anomaly, 1979–2025, per territory. SPC
-        <code>RAIN_ANOM</code>. ENSO drives most of the interannual range in every panel.</p>
-    </section>
-
-    <!-- ═══ Section 06: Roughness (Beat 06) ═══ -->
-    <section class="beat" id="beat-06">
-      <div class="beat-header">
-        <span class="beat-number">06</span>
-        <span class="beat-title-kicker">ROUGHNESS</span>
-      </div>
-      <h2>The reef held. That is not the same as the defence holding.</h2>
-      <p>The obvious version of this story is that Pacific coral is dying and the coasts are losing their breakwater.
-        The data does not support it. GCRMN's 2025 assessment, drawing on more than 15,000 surveys at over 8,000 sites
-        between 1987 and 2023, found average Pacific hard coral cover <strong>stable at about 25.5% from 1990 to
-          2022</strong> — a result it attributes to the region's size, its ecological diversity and its comparatively
-        small coastal population.</p>
-      <p>Percent cover is the wrong measure of coastal protection, and stability in it is not reassurance.</p>
-      <p>Reefs break waves by being rough. A global meta-analysis of 255 studies found that reefs reduce incident wave
-        energy by an average of <strong>97%</strong>, with the reef crest alone dissipating <strong>86%</strong> of it.
-        The mechanism is friction against structure: branches, plates, spurs and grooves extracting energy from moving
-        water. Carlot and colleagues measured that structure directly at Mo'orea and put the Nikuradse roughness of a
-        healthy fore reef at about <strong>0.42 metres</strong>, in a range of 0.34 to 0.52 — a reef surface physically
-        rough at the scale of a forearm.</p>
-      <p>Roughness and cover are different quantities and they can move independently. Two reefs at 25% cover dissipate
-        different amounts of wave energy if one is built of branching <em>Acropora</em> and the other of massive
-        <em>Porites</em> colonies. Thermal stress does not only kill coral; it reshuffles which coral survives. A reef
-        can recover its cover and not recover its architecture.</p>
-      <p>The consequence is steeply non-linear. Carlot's hydrodynamic modelling found that if the structural complexity
-        of a healthy reef is <strong>halved</strong>, wave run-up heights that currently occur once a century arrive
-        <strong>fifty times more often</strong>.</p>
-
-      <div class="honesty-callout">
-        <p>No reef-structure data is plotted in this beat, because none exists for the Pacific at regional scale. The
-          roughness figures are site measurements from Mo'orea, French Polynesia; the run-up multiplier is a modelled
-          result from the same site. They are presented as mechanism, not as a Pacific-wide measurement.</p>
-      </div>
-
-      <!-- Visuals A & B -->
-      <div class="chart-container" id="chart-roughness"></div>
-
-      <p>Nothing in the Pacific Data Hub measures reef roughness. Not one of the thirteen climate indicators in
-        <code>DF_CLIMATE_CHANGE</code> describes reef structure, and GCRMN's monitoring is built on benthic cover
-        because cover is what a diver with a transect line can record. The quantity that governs whether a wave reaches
-        a village is the quantity nobody is tracking at regional scale.</p>
-      <p>What is being tracked is exposure, and it is rising. GCRMN counts <strong>945 cyclones passing within 100 km of
-          Pacific reefs between 1980 and 2023</strong>, and the human population living near those reefs up
-        <strong>28.7% since 2000</strong>. The reef held its cover. The number of people standing behind it grew by more
-        than a quarter.</p>
-
-      <p class="citations">GCRMN, <em>Status and Trends of Coral Reefs of the Pacific: 1980–2023</em>
-        (doi.org/10.59387/WIUJ2936) &middot; Ferrario et al. 2014, <em>Nature Communications</em> 5:3794 &middot; Carlot
-        et al. 2023, <em>Scientific Reports</em> 13:1683.</p>
-    </section>
-
-    <!-- ═══ Section 07: The freshwater lens (Beat 07) ═══ -->
-    <section class="beat" id="beat-07">
-      <div class="beat-header">
-        <span class="beat-number">07</span>
-        <span class="beat-title-kicker">THE FRESHWATER LENS</span>
-      </div>
-      <h2>Where the rain stopped arriving, the water did not</h2>
-      <p>The SDG 6.1.1 series tracks the share of each population using a safely managed drinking-water service.
-        Kiribati — one of the four fastest-drying territories in the rainfall data — moved from 60.9% in 2000 to 75.7%
-        in 2022. A quarter of the country still lacks it, and the national figure conceals the more useful one:
-        Kiribati's urban population is <strong>28.3 percentage points</strong> ahead of its rural population.</p>
-      <p>Papua New Guinea reports the widest gap in the region at <strong>42.5 points</strong>, on a national coverage
-        of 50.2%. Vanuatu is at 10.6, Fiji at 7.6. Three territories moved backwards between 2000 and 2022: French
-        Polynesia (&minus;10.2 points), Niue (&minus;2.2) and Wallis and Futuna (&minus;0.3).</p>
-      <p>Rainfall is the recharge term for an atoll's freshwater lens. It is also, in several of these countries, the
-        only one.</p>
-
-      <div class="honesty-callout">
-        <p>SDG 6.1.1 values are WHO/UNICEF JMP modelled estimates interpolated between sparse household surveys, not
-          annual measurements. They are shown here as 2000-versus-2022 endpoints and as urban–rural gaps — the two
-          comparisons the estimation method supports. No annual trend line is drawn.</p>
-      </div>
-
-      <div class="chart-container" id="chart-freshwater"></div>
-    </section>
-
-    <!-- ═══ Section 08: The measurement (Beat 08) ═══ -->
-    <section class="beat" id="beat-08">
-      <div class="beat-header">
-        <span class="beat-number">08</span>
-        <span class="beat-title-kicker">THE MEASUREMENT</span>
-      </div>
-      <h2>Ten million transects, no model</h2>
-      <p>Digital Earth Pacific's rates-of-change layer fits a trend to each shoreline transect across the region and
-        reports metres gained or lost per year. Ten point four million of them. Red retreats, blue builds.</p>
-
-      <div class="chart-container" id="chart-measurement"></div>
-      <p class="caption">Click any transect for its measured rate. Digital Earth Pacific, rates_of_change, 2023.</p>
-
-      <p>The Pacific pattern is not uniform retreat, and the literature says the same: Duvat's 2019 synthesis of 709
-        islands and Kench's 2018 work on Tuvalu both find most atoll islands stable or growing in area, as reef-derived
-        sediment redistributes. Land area and habitability are different things. An island can gain area on its ocean
-        side and lose the village on its lagoon side in the same decade.</p>
-    </section>
-
-    <!-- ═══ Section 09: The count (Beat 09) ═══ -->
-    <section class="beat" id="beat-09">
-      <div class="beat-header">
-        <span class="beat-number">09</span>
-        <span class="beat-title-kicker">THE COUNT</span>
-      </div>
-      <h2>Two and a half million people, and three quarters of them in four years</h2>
-      <p>The SPC disaster file records directly affected persons attributed to disasters for twenty-one Pacific
-        countries and territories from 2005 to 2023. The total is <strong>2,588,223</strong>.</p>
-      <p>Three quarters of that total falls in four years. 2016 accounts for 733,906, almost all of it Fiji after
-        Cyclone Winston. 2020 accounts for 548,988, spread across Vanuatu (246,802) and Fiji (235,921) after Harold and
-        Yasa. 2018 accounts for 462,927, and 2015 for 195,993 after Pam. The years between them are mostly in the tens
-        of thousands.</p>
-      <p>Fiji alone accounts for 1,240,734 affected persons across the eighteen years reported — more than the country's
-        population. Some Fijians appear in that total more than once.</p>
-      <p>Recorded mortality across the same file is far smaller and differently distributed: Papua New Guinea 1,415,
-        Fiji 1,100, Samoa 491, Solomon Islands 378. Pacific disaster mortality is low relative to the number affected,
-        which is what functioning early warning looks like. Displacement, damaged housing and lost water supply are what
-        the affected count measures, and it is rising in bursts.</p>
-
-      <div class="honesty-callout">
-        <p><code>VC_DSR_AFFCT</code> is the only clean indicator in this file. The others mix units — one reports
-          persons, another reports economic loss in USD under a similar label. Reporting completeness also varies by
-          country and year, so a low national total may mean few events or thin reporting. Sparse-reporting countries
-          are marked on the axis.</p>
-      </div>
-
-      <div class="chart-container" id="chart-count"></div>
-    </section>
-
-    <!-- ═══ Coda ═══ -->
-    <section class="beat coda" id="beat-coda">
-      <p>The shoreline in the first panel moved for reasons that are individually measurable and collectively
-        unmonitored. The heat is in the record. The rise is in the record, once you average away the rounding. The
-        rainfall shift is in the record, and it is sharpest in the places with the least freshwater storage.</p>
-      <p>The reef is in the record too, and it says the cover held.</p>
-      <p>What is not in any record is whether the reef is still rough enough to do the work — the one property that
-        decides how much of the ocean's energy arrives at the door.</p>
-    </section>
-
-  </main>
-
-  <!-- ═══ Footer / Data Ledger ═══ -->
-  <footer id="footer">
-    <div class="footer-content">
-      <div class="footer-sources">
-        <h3>Data Ledger</h3>
-        <table class="data-ledger">
-          <thead>
-            <tr>
-              <th>Indicator</th>
-              <th>Coverage</th>
-              <th>Used</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>SST_ANOM</code></td>
-              <td>1850–2025, 21 terr.</td>
-              <td>Beat 03, 04a</td>
-              <td>Core forcing signal</td>
-            </tr>
-            <tr>
-              <td><code>ST_ANOM</code></td>
-              <td>1850–2025, 22 terr.</td>
-              <td>—</td>
-              <td>Duplicates SST at this resolution; not plotted</td>
-            </tr>
-            <tr>
-              <td><code>SEA_LVL</code></td>
-              <td>1993–2023, 21 terr.</td>
-              <td>Beat 04a</td>
-              <td>Regional mean only; 0.1 m quantised</td>
-            </tr>
-            <tr>
-              <td><code>RAIN_ANOM</code></td>
-              <td>1979–2025, 22 terr.</td>
-              <td>Beat 04b</td>
-              <td>Bidirectional trend; primary new finding</td>
-            </tr>
-            <tr>
-              <td><code>GHG_EMI_CAPITA</code></td>
-              <td>1970–2024, 17 terr.</td>
-              <td>Beat 02</td>
-              <td>6 of 17 series excluded, hatched</td>
-            </tr>
-            <tr>
-              <td><code>CROP_YIELD</code></td>
-              <td>1961–2024, 15 terr.</td>
-              <td>—</td>
-              <td>See null result below</td>
-            </tr>
-            <tr>
-              <td><code>LVST_YIELD</code></td>
-              <td>1961–2024, 14 terr.</td>
-              <td>—</td>
-              <td>Same limitation as crop yield</td>
-            </tr>
-            <tr>
-              <td><code>POWER_GEN</code></td>
-              <td>2000–2023, 18 terr.</td>
-              <td>—</td>
-              <td>Total GWh only; no renewable share, no causal link</td>
-            </tr>
-            <tr>
-              <td><code>TRSM_ARR</code></td>
-              <td>1995–2024, 13 terr.</td>
-              <td>—</td>
-              <td>Dominated by COVID, not climate</td>
-            </tr>
-            <tr>
-              <td><code>ALT_LAND_COVER</code></td>
-              <td>1992–2022, 22 terr.</td>
-              <td>—</td>
-              <td>CALCI index near-constant per country; no signal</td>
-            </tr>
-            <tr>
-              <td><code>METEO_MONITOR_NET</code></td>
-              <td>1889–2026, 18 terr.</td>
-              <td>—</td>
-              <td>Station counts; measures observation, not climate</td>
-            </tr>
-            <tr>
-              <td><code>FISH_MNGT_MULT_BILAT_ARGMT</code></td>
-              <td>1903–2026</td>
-              <td>—</td>
-              <td>Governance instrument counts, out of scope</td>
-            </tr>
-            <tr>
-              <td><code>ENV_TAXES</code></td>
-              <td>2000–2020, 5 terr.</td>
-              <td>—</td>
-              <td>Five territories; too sparse</td>
-            </tr>
-            <tr>
-              <td><code>SH_H2O_SAFE</code></td>
-              <td>2000–2022, 19 terr.</td>
-              <td>Beat 07</td>
-              <td>Endpoints + urban/rural gap only</td>
-            </tr>
-            <tr>
-              <td><code>VC_DSR_AFFCT</code></td>
-              <td>2005–2023, 21 terr.</td>
-              <td>Beat 09</td>
-              <td>Only clean indicator in its file</td>
-            </tr>
-            <tr>
-              <td><code>VC_DSR_MORT</code></td>
-              <td>2005–2022, 21 terr.</td>
-              <td>Beat 09</td>
-              <td>Secondary axis</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="null-result">
-          <h4>Published null result</h4>
-          <p>Crop yield was tested as a downstream link from rainfall. Detrending each national yield series and
-            correlating the residual against that country's precipitation anomaly gives coefficients between &minus;0.15
-            and +0.23 across fifteen territories, with a maximum of 0.23 for Fiji. That is not a relationship worth
-            drawing an arrow for. The Micronesian series also drops from 91,566 to 5,587 kg/ha across the record, which
-            is a change in what is being counted rather than in what is being grown. Crop yield is therefore reported
-            here as tested and excluded, not omitted.</p>
-        </div>
-      </div>
-      <div class="footer-meta">
-        <p>Built for the <strong>Pacific DataViz Challenge 2026</strong></p>
-        <p class="footer-tech">D3.js v7 &middot; Vanilla CSS</p>
-      </div>
+    <div class="text-block">
+        <p class="kicker">What a warming ocean does on its way to land.</p>
+        <h1 class="main-title">The Pacific Cascade</h1>
+        <p>What a warming ocean does on its way to land. Greenhouse gas becomes heat. Heat becomes a rising sea and a
+            rearranged rainy season. Those become a coastline that no longer sits where it did. Each of those steps has
+            been measured. One has not and it is the step that decides how much of the ocean's energy reaches a doorway.
+        </p>
     </div>
-  </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-  <script src="app.js"></script>
+    <div class="flowchart">
+        <div class="flowchart-item">Greenhouse gas</div>
+        <div class="flowchart-arrow"></div>
+        <div class="flowchart-item">Heat</div>
+        <div class="flowchart-arrow"></div>
+        <div class="flowchart-item">Rising Sea and<br>Rearranged Rains</div>
+        <div class="flowchart-arrow"></div>
+        <div class="flowchart-item">Shifting Coastlines</div>
+    </div>
+
+    <div class="text-block">
+        <p>Eleven of the seventeen Pacific series in the SPC emissions file sit below 4 tonnes of CO₂-equivalent per
+            person per year. Kiribati is at 0.9, the Solomon Islands at 0.8, Tuvalu at 0.4. New Caledonia, at 18.4, is
+            an outlier built on nickel smelting rather than on how anyone lives.</p>
+        <p>Six series in the same file are not usable. Palau is recorded at 190.6 tonnes per person in 1970 and 86.7 in
+            2024 — four times higher than any national figure recorded anywhere. Nauru, the Marshall Islands, Guam,
+            American Samoa and the Northern Marianas appear as flat lines at 0.1–0.2 tonnes for fifty-five consecutive
+            years, which is not a measurement either. Those six are drawn hatched</p>
+    </div>
+
+    <div class="chart-block">
+        <div class="chart-title" style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+            <span>TCO₂E PER CAPITA (1970-2024) · SPC PACIFIC DATA HUB</span>
+            <div class="play-controls" style="display:flex; gap:10px; align-items:center;">
+                <button id="play-pause-button" title="play"
+                    style="cursor:pointer; background:none; border:none; font-size:18px;">▶</button>
+                <input id="play-range" type="range" value="1970" min="1970" max="2024" style="width:150px;" />
+            </div>
+        </div>
+        <div id="chart-emissions" class="chart-container-placeholder"></div>
+        <div class="chart-caption">Palau and New Cal. are industrial outliers. Colour: red = highest, blue = lowest.
+        </div>
+    </div>
+
+    <div class="text-block">
+        <p>The SPC sea-surface temperature file runs 1850 to 2025 across twenty-one countries and territories. Averaged
+            across all of them, the ten warmest years in that 176-year record are 2024, 2025, 2020, 2017, 2016, 2019,
+            2023, 2018, 2015 and 2022. No twentieth-century year appears in the list.</p>
+        <p>The regional mean sat at -0.12 °C through the 1961–1990 climatological baseline. Across 1995–2024 it sits at
+            +0.37 °C. Against the 1850–1900 pre-industrial window, the last ten years average +0.74 °C.</p>
+        <p>The sawtooth riding on the trend is ENSO. El Niño years lift regional sea-surface temperature by several
+            tenths of a degree and La Niña years pull it back; 2016 and 2024 are both El Niño peaks. Any Pacific series
+            read without that band shading looks noisier than it is.</p>
+        <p>The ocean absorbs roughly 91% of the excess energy in the climate system (IPCC AR6 WGI Ch. 9). From here the
+            cascade splits in two.</p>
+    </div>
+
+
+
+    <div class="chart-block">
+        <div class="button-row" id="temp-country-buttons">
+            <button class="pill-button" data-country="Kiribati">Kiribati</button>
+            <button class="pill-button active" data-country="Marshall Islands">Marshall Islands</button>
+            <button class="pill-button" data-country="Nauru">Nauru</button>
+            <button class="pill-button" data-country="Palau">Palau</button>
+            <button class="pill-button" data-country="Tonga">Tonga</button>
+            <button class="pill-button" data-country="Tuvalu">Tuvalu</button>
+            <button class="pill-button" data-country="Vanuatu">Vanuatu</button>
+        </div>
+
+        <div class="chart-title" style="text-transform: uppercase;">Temperature Anomaly · All Pacific Countries ·
+            1850–2025</div>
+        <div id="chart-sea-level-lines" class="chart-container-placeholder"
+            style="margin-top: 1rem; border-bottom: none;"></div>
+
+        <div class="legend-row" style="margin-top: 1rem; width: 100%; justify-content: flex-start; gap: 1rem;">
+            <div class="legend-item"
+                style="border: 1px solid var(--accent-blue); padding: 5px 15px; border-radius: 20px; color: var(--accent-blue);">
+                <div class="legend-dot dot-blue"></div> Pacific countries mean
+            </div>
+            <div class="legend-item" id="temp-legend-country"
+                style="border: 1px solid var(--accent-gold); padding: 5px 15px; border-radius: 20px; color: var(--accent-gold);">
+                <div class="legend-dot dot-orange"></div> Marshall Islands
+            </div>
+        </div>
+    </div>
+
+    <div class="text-block">
+        <h2>A regional signal built from unusable national ones</h2>
+        <p>The SPC sea-level file reports at 0.1-metre resolution. Every observation in it is one of five values: -0.2,
+            -0.1, 0.0, 0.1 or 0.2 metres. At that precision no single country's series means anything — Kiribati reads
+            0.0 for its first three years because the true value rounded to zero, not because the sea stood still.
+            Averaged across all twenty-one territories, the quantisation error cancels. The regional mean rises at 4.3
+            mm per year across 1993–2023, within the range satellite altimetry independently reports for the tropical
+            Pacific. The dataset cannot answer which island is worst affected. It can answer whether the Pacific is
+            rising, and it says yes.</p>
+    </div>
+
+    <div class="chart-block">
+        <div id="chart-sea-level-step" class="chart-container-placeholder"></div>
+        <div class="chart-caption">SEA_LVL - SPC Pacific Data Hub - Regional mean - quantised 0.1m - 1993-2023.</div>
+    </div>
+
+    <div class="text-block">
+        <h2>Where the rain stopped arriving, the water did not</h2>
+        <p>The SDG 6.1.1 series tracks the share of each population using a safely managed drinking-water service.
+            Kiribati — one of the four fastest-drying territories in the rainfall data — moved from 60.9% in 2000 to
+            75.7% in 2022. A quarter of the country still lacks it, and the national figure conceals the more useful
+            one: Kiribati's urban population runs 28.3 percentage points ahead of its rural population.</p>
+        <p>Papua New Guinea reports the widest gap in the region at 42.5 points, on national coverage of 50.2%. Vanuatu
+            is at 10.6, Fiji at 7.6. Three territories moved backwards between 2000 and 2022: French Polynesia (-10.2
+            points), Niue (-2.2), Wallis and Futuna (-0.3).</p>
+        <p>Rainfall is the recharge term for an atoll's freshwater lens. In several of these countries it is the only
+            one. That is the mechanism, and it is why this link is drawn dashed: the rainfall decline is measured and
+            the water-access shortfall is measured, but nothing in either dataset attributes one to the other.</p>
+    </div>
+
+    <div class="chart-block">
+        <div class="chart-title">RAINFALL ANOMALY (MM), 2025 · RAIN_ANOM · RED = DRYING · BLUE = WETTING</div>
+        <div id="chart-rainfall" class="chart-container-placeholder"></div>
+        <div class="chart-caption">RAIN_ANOM - SPC Pacific Data Hub - DP_CLIMATE_CHANGE. Texture, not headline finding.
+        </div>
+    </div>
+
+    <div class="chart-block">
+        <div class="chart-title">URBAN VS RURAL SAFELY MANAGED WATER ACCESS · SORTED BY GAP</div>
+
+        <div class="dumbbell-chart-wrapper">
+            <div class="legend-row">
+                <div class="legend-item">
+                    <div class="legend-dot dot-orange"></div> Rural
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot dot-blue"></div> Urban
+                </div>
+            </div>
+
+            <!-- We can implement this in Highcharts or pure HTML/CSS. A pure HTML/CSS implementation is cleaner for this specific visual style. Let's do a few rows as an example. -->
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Papua NG</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 20%; right: 70%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 20%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 30%;"></div>
+                </div>
+                <div class="dumbbell-value value-red">43pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Kiribati</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 40%; right: 40%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 40%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 60%;"></div>
+                </div>
+                <div class="dumbbell-value value-red">28pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Solomon Is.</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 55%; right: 35%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 55%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 65%;"></div>
+                </div>
+                <div class="dumbbell-value text-muted">15pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Marshall Is.</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 58%; right: 30%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 58%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 70%;"></div>
+                </div>
+                <div class="dumbbell-value text-muted">14pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Vanuatu</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 60%; right: 25%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 60%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 75%;"></div>
+                </div>
+                <div class="dumbbell-value text-muted">11pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Fiji</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 65%; right: 20%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 65%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 80%;"></div>
+                </div>
+                <div class="dumbbell-value text-muted">8pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Samoa</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 67%; right: 18%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 67%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 82%;"></div>
+                </div>
+                <div class="dumbbell-value text-muted">7pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Tuvalu</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 70%; right: 15%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 70%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 85%;"></div>
+                </div>
+                <div class="dumbbell-value text-muted">3pt</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Tonga</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 72%; right: 13%;"></div>
+                    <div class="dumbbell-dot dot-orange" style="left: 72%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 87%;"></div>
+                </div>
+                <div class="dumbbell-value text-muted">2pt</div>
+            </div>
+        </div>
+        <div class="chart-caption" style="margin-top: -1.5rem; margin-bottom: 3rem;">SH_H2Q_SAFE - SDG 6.1.1 -
+            WHO/UNICEF JMP modelled estimates - most recent year.</div>
+
+        <div class="chart-title" style="margin-top: 1rem;">NATIONAL COVERAGE 2000 -> 2022</div>
+
+        <div class="dumbbell-chart-wrapper">
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Kiribati</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 50%; right: 20%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 50%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 80%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+14.8%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Papua NG</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 45%; right: 40%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 45%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 60%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+8.4%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Vanuatu</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 60%; right: 25%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 60%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 75%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+7.7%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Fiji</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 70%; right: 15%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 70%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 85%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+4.6%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Samoa</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 65%; right: 22%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 65%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 78%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+5.5%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Solomon Is.</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 60%; right: 20%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 60%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 80%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+7.2%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Marshall Is.</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 68%; right: 16%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 68%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 84%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+5.5%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Tuvalu</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 75%; right: 10%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 75%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 90%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+3.5%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Fr. Polynesia</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 72%; right: 20%;"></div>
+                    <div class="dumbbell-dot dot-red" style="left: 72%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 80%;"></div>
+                </div>
+                <div class="dumbbell-value value-red">-10.2%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Niue</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 78%; right: 15%;"></div>
+                    <div class="dumbbell-dot dot-red" style="left: 78%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 85%;"></div>
+                </div>
+                <div class="dumbbell-value value-red">-2.2%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Wallis & F.</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 76%; right: 17%;"></div>
+                    <div class="dumbbell-dot dot-red" style="left: 76%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 83%;"></div>
+                </div>
+                <div class="dumbbell-value value-red">-0.3%</div>
+            </div>
+            <div class="dumbbell-row">
+                <div class="dumbbell-label">Tonga</div>
+                <div class="dumbbell-track">
+                    <div class="dumbbell-line" style="left: 80%; right: 10%;"></div>
+                    <div class="dumbbell-dot dot-grey" style="left: 80%;"></div>
+                    <div class="dumbbell-dot dot-blue" style="left: 90%;"></div>
+                </div>
+                <div class="dumbbell-value value-blue">+0.9%</div>
+            </div>
+        </div>
+        <div class="chart-caption" style="margin-top: -1.5rem;">Three territories declined 2000-2022: Fr. Polynesia
+            (-10.2 pt), Niue (-2.2), Wallis & Futuna (-0.3).</div>
+    </div>
+
+    <div class="text-block">
+        <p>Ten million transects, no model<br>
+            Digital Earth Pacific's rates of change layer fits a trend to each shoreline...</p>
+        <p>...The Pacific pattern is not uniform retreat, and the literature agrees: Duvat's 2019 synthesis of 709
+            islands and Kench's 2018 work on Tuvalu both find most atoll islands stable or growing in area as
+            reef-derived sediment redistributes. Land area and habitability are different things. An island can gain
+            area on its ocean side and lose the village on its lagoon side in the same decade.<br>
+            This layer measures the outcome. It does not apportion it between the links above.</p>
+    </div>
+
+
+
+    <div class="text-block" style="margin-bottom: 8rem;">
+        <p>The cascade is measured everywhere except where it matters most<br>
+            The heat is in the record: the ten warmest years, all within this century.<br>
+            The sea anomalies are in the record, marking a Pacific that is becoming increasingly unstable.<br>
+            The rise is in the record, once the noise is averaged away — 4.3 millimetres a year.<br>
+            The rainfall shift is in the record, uneven and sharpest where freshwater storage is already limited.<br>
+            The shoreline change is in the record, traced across millions of transects.<br>
+            And the gas is in the record — accumulating upstream of every one of these changes.<br>
+            Between the gas and the shoreline sits a chain of measurable shifts: gas &rightarrow; heat &rightarrow; sea
+            anomalies &rightarrow; sea-level rise &rightarrow; rainfall &rightarrow; shoreline.<br>
+            Every solid link in this cascade was built by someone deciding the quantity was worth counting.<br>
+            The question is what happens between the measurements — and what remains invisible because we have not yet
+            decided how to measure it.</p>
+    </div>
+
+    <script src="main.js"></script>
 </body>
 
 </html>
-
-
-Stop Agent
