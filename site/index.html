@@ -11,7 +11,6 @@
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/highcharts-more.js"></script>
 <script src="https://code.highcharts.com/maps/modules/map.js"></script>
-<script src="https://code.highcharts.com/modules/tilemap.js"></script>
 </head>
 <body class="highcharts-light">
 
@@ -227,15 +226,17 @@
         above.</p>
     </section>
 
-    <section class="s-md map-section shoreline-section">
-      <p class="label">Shoreline change · Digital Earth Pacific · cumulative displacement (m)</p>
-      <p class="map-lede">One hexagon per territory, placed by its real coordinates. Colour is
-        total shoreline movement over the source's reported window — rate &times; years —
-        where the source reports both.</p>
-      <div class="chart" id="chart-shoreline"></div>
-      <div class="map-foot">
-        <p class="map-hint" id="shoreline-note"></p>
-        <div class="map-key" id="shoreline-key"></div>
+    <section class="s-md">
+      <p class="label">Shoreline change · Digital Earth Pacific · rates of change (m/year)</p>
+      <div class="chart pending" id="chart-shoreline">
+        <div>
+          <p class="pending-title">Not drawn — the geometry is not in this repository</p>
+          <p class="pending-body">The rates-of-change layer is vector geometry
+            (<code>.gpkg</code>), not a CSV. <code>Mapping.qgz</code> references
+            <code>dep_ls_coastlines_0-7-0-55.gpkg</code> by relative path, and only the project
+            file was committed — the geometry itself was not. This panel stays empty until that
+            file, or a per-territory summary exported from it, is added to the repository.</p>
+        </div>
       </div>
     </section>
 

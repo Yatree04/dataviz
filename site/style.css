@@ -406,38 +406,6 @@ footer p:last-child { margin-bottom: 0; }
   margin-left: 0.75rem;
 }
 
-/* Dot-legend, closer to the reference's data-class key than a gradient bar:
-   a coloured circle per bracket, named rather than just bounded. */
-.shoreline-section .map-key {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem 1.125rem;
-}
-.shoreline-section .dk {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-.shoreline-section .dk-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-.shoreline-section .dk-dot--nodata {
-  background: #E4E2DE;
-  border: 1.5px dashed #B9B4AC;
-}
-
-/* Tilemap hexes read better with a touch more depth than the flat page
-   palette elsewhere — closer to the reference's saturated fill. */
-#chart-shoreline .highcharts-point {
-  filter: drop-shadow(0 1px 1px rgba(25, 25, 25, 0.06));
-}
-.key-shore { background: linear-gradient(to right, #C1362F, #F4F1EA, #2A78D6) !important; }
 .key-ramp {
   width: 110px;
   height: 7px;
