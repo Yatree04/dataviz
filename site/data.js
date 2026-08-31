@@ -182,6 +182,12 @@ export async function loadData() {
   for (const [c, pts] of Object.entries(SST)) sstByCountry[c] = pts.map(([y, v]) => [y, v]);
   const top10 = [...sstRegional].sort((a, b) => b[1] - a[1]).slice(0, 10).map((p) => p[0]);
 
+  // Surface temperature is a separate indicator from sea-surface temperature
+  // and covers one more territory: Pitcairn has a land series and no sea one.
+  const stRegional = regionalMean(ST).map(([y, v]) => [y, +v.toFixed(3)]);
+  const stByCountry = {};
+  for (const [c, pts] of Object.entries(ST)) stByCountry[c] = pts.map(([y, v]) => [y, v]);
+
   // "the last ten years" means the last ten complete years: the final year of
   // the file is the current one and is still being written.
   const lastComplete = sstRegional[sstRegional.length - 1][0] - 1;
@@ -268,19 +274,20 @@ export async function loadData() {
     };
   }).filter(Boolean).sort((a, b) => b.change - a.change);
 
-  // SST_ANOM, not ST_ANOM: the map is labelled sea-surface temperature and its
-  // tooltip compares each territory against the SST regional mean, so it has to
-  // be drawn from the same indicator. ST_ANOM covers 22 territories and SST_ANOM
-  // 21 — Pitcairn has a land series but no sea-surface one, and must stay blank
-  // rather than borrow the other indicator's number.
+  // The map draws ST_ANOM, surface temperature. Sea-surface temperature is a
+  // different indicator and gets its own visualisation, so the two are never
+  // mixed into one series.
   const mapCountries = Object.entries(COORDS).map(([iso, [lat, lon]]) => {
-    const series = SST[countryName(iso)];
+    const series = ST[countryName(iso)];
     if (!series || !series.length) return null;
     return { iso, name: countryName(iso), lat, lon, series };
   }).filter(Boolean);
 
   return {
     sstRegional, sstByCountry, top10,
+    stRegional, stByCountry,
+    stTerritories: Object.keys(ST).length,
+    stYears: [stRegional[0][0], stRegional[stRegional.length - 1][0]],
     sstMeanBaseline: +meanOver(sstRegional, 1961, 1990).toFixed(2),
     sstMeanRecent: +meanOver(sstRegional, 1995, 2024).toFixed(2),
     sstPreIndustrialYears: [lastComplete - 9, lastComplete],

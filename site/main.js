@@ -260,6 +260,39 @@ const setText = (sel, value) => {
   // ── 7. The map — Pacific overview, drilling into one territory ────────────
   await buildSSTMap(D);
 
+  // ── 7b. Sea-surface temperature, drawn as its own thing ───────────────────
+  // A different indicator from the map above, so it gets a different form: one
+  // row per territory, one cell per year, on the map's colour scale. Only the
+  // years each territory actually reports are drawn.
+  const strips = document.getElementById('sst-strips');
+  if (strips) {
+    const MIN = -1.2, MAX = 1.2;
+    const colour = (v) => {
+      const t = Math.max(0, Math.min(1, (v - MIN) / (MAX - MIN)));
+      const mix = (a, b, k) => Math.round(a + (b - a) * k);
+      return t < 0.5
+        ? `rgb(${mix(74, 244, t * 2)},${mix(144, 241, t * 2)},${mix(226, 234, t * 2)})`
+        : `rgb(${mix(244, 217, (t - 0.5) * 2)},${mix(241, 95, (t - 0.5) * 2)},${mix(234, 82, (t - 0.5) * 2)})`;
+    };
+    const rows = Object.entries(D.sstByCountry)
+      .map(([country, pts]) => ({ country, pts, last: pts[pts.length - 1][1] }))
+      .sort((a, b) => b.last - a.last);
+    const [y0, y1] = D.sstYears;
+    strips.innerHTML = rows.map((r) => {
+      const byYear = Object.fromEntries(r.pts);
+      let cells = '';
+      for (let y = y0; y <= y1; y++) {
+        const v = byYear[y];
+        cells += v === undefined
+          ? '<i class="strip-gap"></i>'
+          : `<i style="background:${colour(v)}" title="${r.country} ${y}: ${v > 0 ? '+' : ''}${v.toFixed(2)}°C"></i>`;
+      }
+      return `<div class="strip-row"><span class="strip-label">${r.country}</span>`
+        + `<span class="strip">${cells}</span></div>`;
+    }).join('')
+      + `<div class="strip-axis"><span>${y0}</span><span>${y1}</span></div>`;
+  }
+
   // ── 8. Figures quoted in the prose, computed rather than typed ────────────
   // Every number the copy asserts is looked up here. If a series is missing the
   // span keeps its em dash, so a broken load reads as broken rather than as a
@@ -320,6 +353,12 @@ const setText = (sel, value) => {
 
   // sea-surface temperature
   setText('#fig-sst-territories', words(D.sstTerritories));
+  const stOnly = Object.keys(D.stByCountry).filter((c) => !(c in D.sstByCountry));
+  setText('#fig-sst-vs-st', stOnly.length
+    ? `The map above draws surface temperature, a different indicator covering `
+      + `${words(D.stTerritories)} territories: ${fmtList(stOnly)} `
+      + `${stOnly.length === 1 ? 'has' : 'have'} a surface series but no sea-surface one.`
+    : 'The map above draws surface temperature, a different indicator.');
   setText('#fig-sst-span', `${D.sstYears[0]} to ${D.sstYears[1]}`);
   setText('#fig-sst-record', `${D.sstYears[1] - D.sstYears[0] + 1}-year`);
   setText('#fig-top10', fmtList(D.top10.map(String)));

@@ -71,6 +71,42 @@
       </div>
     </section>
 
+    <!-- ── Section 2a: surface temperature map ── -->
+    <section class="s-md map-section">
+      <p class="label">Surface temperature anomaly · Pacific territories</p>
+      <p class="map-lede">Each territory carries its own surface-temperature anomaly for the
+        selected year. Double-click one to zoom in and open its record beside the map.</p>
+      <nav class="map-breadcrumb" id="map-breadcrumb"></nav>
+
+      <div class="map-layout" id="map-layout">
+        <div class="map-pane">
+          <div class="chart" id="chart-sst-map" style="min-height:560px"></div>
+          <div class="map-ui">
+            <button class="play-btn" title="play">▶</button>
+            <div class="timeline-track">
+              <div class="timeline-fill"></div>
+              <div class="timeline-handle"></div>
+            </div>
+            <span class="map-ui-year">—</span>
+          </div>
+          <div class="map-foot">
+            <p class="map-hint">Hover a territory for its reading. Double-click to zoom in.</p>
+            <div class="map-key">
+              <span>−1.2</span><span class="key-ramp"></span><span>+1.2 °C</span>
+              <span class="key-nodata"></span><span>no data</span>
+            </div>
+          </div>
+        </div>
+
+        <aside id="territory-detail" class="detail-panel" hidden>
+          <p class="detail-title" id="detail-title"></p>
+          <p class="detail-sub" id="detail-sub"></p>
+          <div id="detail-chart"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ── Section 2b: sea-surface temperature, a separate indicator ── -->
     <!-- ── Section 2: SST ── -->
     <section class="s-lg">
       <p class="body">The SPC sea-surface temperature file runs
@@ -90,32 +126,11 @@
         (IPCC AR6 WGI Ch. 9). From here the cascade splits in two.</p>
     </section>
 
-    <section class="s-md map-section">
-      <p class="label">Sea-surface temperature · Pacific regional map</p>
-      <nav class="map-breadcrumb" id="map-breadcrumb"></nav>
-      <div class="chart" id="chart-sst-map" style="min-height:620px"></div>
-      <div class="map-ui">
-        <button class="play-btn" title="play">▶</button>
-        <div class="timeline-track">
-          <div class="timeline-fill"></div>
-          <div class="timeline-handle"></div>
-        </div>
-        <span class="map-ui-year">—</span>
-      </div>
-      <div class="map-foot">
-        <p class="map-hint">Hover any country for its reading. Double-click one with
-        data to zoom in and open its record.</p>
-        <div class="map-key">
-          <span>−1.2</span><span class="key-ramp"></span><span>+1.2 °C</span>
-          <span class="key-nodata"></span><span>no data</span>
-        </div>
-      </div>
-
-      <div id="territory-detail" hidden>
-        <p class="detail-title" id="detail-title"></p>
-        <p class="detail-sub" id="detail-sub"></p>
-        <div id="detail-chart"></div>
-      </div>
+    <section class="s-md">
+      <p class="label">Sea-surface temperature anomaly · SST_ANOM · every territory · every year</p>
+      <div id="sst-strips"></div>
+      <p class="caption">One row per territory, one cell per year, on the same scale as the map
+        above. <span id="fig-sst-vs-st">—</span></p>
     </section>
 
     <!-- ── Section 3: Sea level ── -->

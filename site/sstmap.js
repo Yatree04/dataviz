@@ -1,5 +1,7 @@
-// site/sstmap.js
-// The SST map: a Pacific overview that drills into a single territory and back.
+// site/tempmap.js is this file's subject, kept at sstmap.js to avoid churn.
+// The surface-temperature map: a Pacific overview that drills into a single
+// territory and back. Sea-surface temperature is a different indicator and has
+// its own visualisation below this one; the two are never mixed.
 //
 // Geometry is Natural Earth 1:10m, filtered to the territories this dataset
 // names and vendored into data/pacific.geo.json — so the map no longer depends
@@ -35,12 +37,9 @@ export async function buildSSTMap(D) {
   const host = document.getElementById('chart-sst-map');
   if (!host || typeof Highcharts.mapChart !== 'function') return;
 
-  let geo, world;
+  let geo;
   try {
-    [geo, world] = await Promise.all([
-      fetch('data/pacific.geo.json').then((r) => r.json()),
-      fetch('data/world.geo.json').then((r) => r.json()),
-    ]);
+    geo = await fetch('data/pacific.geo.json').then((r) => r.json());
   } catch (e) {
     host.classList.add('pending');
     host.innerHTML = '<div><p class="pending-title">Pacific geometry did not load</p>'
@@ -52,8 +51,8 @@ export async function buildSSTMap(D) {
   const byIso = {};                     // iso -> { year: value }
   for (const c of D.mapCountries) byIso[c.iso] = Object.fromEntries(c.series);
   const ISOS = Object.keys(byIso);
-  const [Y_MIN, Y_MAX] = D.sstYears;
-  const regionalAt = Object.fromEntries(D.sstRegional);
+  const [Y_MIN, Y_MAX] = D.stYears;
+  const regionalAt = Object.fromEntries(D.stRegional);
   const geomOf = Object.fromEntries(geo.features.map((f) => [f.properties.iso, f.geometry]));
 
   // Each island of a territory, as the centroid of its own polygon part. An
@@ -135,10 +134,10 @@ export async function buildSSTMap(D) {
       backgroundColor: 'transparent', animation: { duration: 420 }, height: 620,
       style: FONT, spacing: [4, 4, 4, 4],
     },
-    // A whole-world view, rotated so the Pacific sits in the middle rather than
-    // being cut in half by the antimeridian. No hardcoded zoom: a fixed one sat
-    // below the view's own minZoom and was silently clamped on the first
-    // drill-up, so the overview is taken from fitToBounds instead.
+    // The vendored geometry is Pacific-only, so fitting its bounds is the
+    // Pacific overview and it stays right at any container width. No hardcoded
+    // zoom: a fixed one sat below the view's own minZoom and was silently
+    // clamped on the first drill-up.
     mapView: { projection: { name: 'EqualEarth', rotation: [-180] } },
     mapNavigation: {
       enabled: true,
@@ -165,25 +164,11 @@ export async function buildSSTMap(D) {
       },
     },
     series: [
-      // 0 — the rest of the world. This dataset observes 21 Pacific territories
-      // and nothing else, so every other country is drawn as explicitly
-      // unmeasured rather than being given a colour it has not earned.
-      {
-        type: 'map', id: 'world-base', mapData: world, nullColor: NO_DATA,
-        borderColor: NO_DATA_EDGE, borderWidth: 0.4, zIndex: 0,
-        showInLegend: false,
-        tooltip: {
-          pointFormatter() {
-            return `<span class="tt-name">${this.name || 'â€”'}</span><br>`
-              + '<span class="tt-ref">no sea-surface observation in this dataset</span>';
-          },
-        },
-      },
-      // 1 — Pacific territories as land, including any with no series
+      // 0 — every Pacific territory as land, including any with no series
       {
         type: 'map', id: 'pac-base', mapData: geo, nullColor: NO_DATA,
-        borderColor: NO_DATA_EDGE, borderWidth: 0.5,
-        enableMouseTracking: false, showInLegend: false, zIndex: 1,
+        borderColor: NO_DATA_EDGE, borderWidth: 0.6,
+        enableMouseTracking: false, showInLegend: false, zIndex: 0,
       },
       // 2 — the observation itself, painted onto the territory
       {
@@ -248,9 +233,9 @@ export async function buildSSTMap(D) {
   function paintCrumb() {
     if (!crumb) return;
     crumb.innerHTML = selected
-      ? `<button class="crumb-link" data-up="1">World</button>`
+      ? `<button class="crumb-link" data-up="1">Pacific</button>`
         + `<span class="crumb-sep">/</span><span class="crumb-here">${countryName(selected)}</span>`
-      : `<span class="crumb-here">World</span>`;
+      : `<span class="crumb-here">Pacific</span>`;
   }
 
   function drillTo(iso) {
@@ -300,7 +285,7 @@ export async function buildSSTMap(D) {
       credits: { enabled: false },
       legend: { enabled: false },
       xAxis: {
-        min: Y_MIN, max: Y_MAX, tickInterval: 25, lineColor: '#E2E8F0', tickLength: 0,
+        min: Y_MIN, max: Y_MAX, tickInterval: 50, lineColor: '#E2E8F0', tickLength: 0,
         crosshair: { width: 1, color: 'rgba(25,25,25,0.18)' },
         labels: { style: { fontSize: '10px', color: COLORS.light } },
         plotBands: ENSO_EVENTS.map((e) => ({
@@ -351,8 +336,8 @@ export async function buildSSTMap(D) {
 
     const sub = document.getElementById('detail-sub');
     if (sub) {
-      sub.textContent = `Sea-surface temperature anomaly · every reported year `
-        + `· dashed line is ${countryName(iso)}'s long-term mean ${fmt(longTerm)} °C `
+      sub.textContent = `Surface temperature anomaly · every reported year `
+        + `· dashed line is this territory's long-term mean ${fmt(longTerm)} °C `
         + `· grey is the Pacific regional mean`;
     }
 
