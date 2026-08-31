@@ -457,8 +457,6 @@ footer p:last-child { margin-bottom: 0; }
   flex-shrink: 0;
 }
 
-.detail-flag { margin-right: 0.4rem; font-size: 1.05em; }
-
 /* The information block: what the rest of the project knows about the
    selected territory. A plain list, not a row of cards. */
 .detail-facts {

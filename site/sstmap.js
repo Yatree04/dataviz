@@ -35,13 +35,6 @@ const COLOR_AXIS = {
   stops: [[0, COLORS.blue], [0.5, '#F4F1EA'], [1, COLORS.red]],
 };
 
-// ISO-3166 alpha-2 -> the regional-indicator pair that renders as that flag.
-// Derived from the code the dataset already carries, so it needs no sprite
-// sheet, no CDN and no per-country asset.
-const flagOf = (iso) => (/^[A-Z]{2}$/.test(iso)
-  ? iso.replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
-  : '');
-
 export async function buildSSTMap(D) {
   const host = document.getElementById('chart-sst-map');
   if (!host || typeof Highcharts.mapChart !== 'function') return;
@@ -415,9 +408,9 @@ export async function buildSSTMap(D) {
 
     const many = selection.length > 1;
     if (detailTitle) {
-      detailTitle.innerHTML = many
+      detailTitle.textContent = many
         ? `Comparing ${selection.length} territories`
-        : `<span class="detail-flag">${flagOf(selection[0])}</span>${countryName(selection[0])}`;
+        : countryName(selection[0]);
     }
 
     // The reference shows a flag and a name; the facts are the extension of
