@@ -1,164 +1,195 @@
 // charts/rainfall.js
-// BEAT ③c — Rainfall destabilisation: RAIN_ANOM diverging bar chart.
-// Uses invisible hit-layer rects for tooltips (separate from animated bars).
+// BEAT ③c — rainfall.
+//
+// WHAT CHANGED AND WHY
+//
+//  1. THE BARS ARE NOW A TREND, NOT A SNAPSHOT. The old chart took only the final
+//     observation — 2025 — while the copy said things like "Tonga tends wetter."
+//     "Tends" is a trend word and a single bar is weather. Bars are now the mean of
+//     the last ten years.
+//
+//  2. THE SINGLE YEAR IS STILL SHOWN, AS A DOT. Keeping the latest year visible next
+//     to the decadal mean is the honest move: it shows the reader how far one year
+//     can sit from the tendency, which is the whole reason the change was needed.
+//
+//  3. ENSO IS NAMED. The 2025 pattern — dry at Nauru, Kiribati and Tuvalu, wet in the
+//     southwest — is a textbook ENSO rainfall dipole, not a greenhouse trend. The
+//     caption says so rather than letting the reader attribute it to the cascade.
 
-const C_DRY = '#e07b3f';  // drying (negative anomaly) → orange
-const C_WET = '#2a78d6';  // wetting (positive anomaly) → blue
+import { trailingMean } from '../js/data.js?v=7';
+
+const C_DRY = '#e07b3f';
+const C_WET = '#2a78d6';
 const C_GRID = '#e8e8e8';
 const C_AXIS = '#999999';
 const C_INK = '#333333';
+const WINDOW = 10;
 
 export function renderRainfall(container, data, opts = {}) {
-    const el = typeof container === 'string' ? document.querySelector(container) : container;
-    if (!el) return { update() { }, destroy() { } };
+  const el = typeof container === 'string' ? document.querySelector(container) : container;
+  if (!el) return { update() { }, destroy() { } };
 
-    d3.select(el).style('position', 'relative');
+  d3.select(el).style('position', 'relative');
+  const tip = d3.select(el).append('div').attr('class', 'bklit-tooltip');
 
-    // ── Tooltip div (Bklit dark-glass) ──────────────────────────
-    const tip = d3.select(el).append('div')
-        .attr('class', 'bklit-tooltip');
+  const state = { width: opts.width || el.clientWidth || 720 };
+  const M = { top: 30, right: 132, bottom: 66, left: 175 };
 
-    const state = { width: opts.width || el.clientWidth || 720 };
-    // Left margin wide enough for longest country name; right for legend
-    const M = { top: 16, right: 120, bottom: 52, left: 175 };
+  const svg = d3.select(el).append('svg').attr('role', 'img')
+    .attr('aria-label',
+      'Ten-year mean rainfall anomaly by Pacific nation, with the most recent single ' +
+      'year shown separately to display interannual spread.');
 
-    const svg = d3.select(el).append('svg').attr('role', 'img')
-        .attr('aria-label', 'Rainfall anomaly across Pacific nations — bidirectional disruption.');
-
-    function latestValues(series) {
-        const rows = [];
-        for (const [country, pts] of Object.entries(series)) {
-            if (country.startsWith('__') || !Array.isArray(pts) || !pts.length) continue;
-            const latest = pts[pts.length - 1];
-            rows.push({ country, year: latest[0], value: latest[1] });
-        }
-        return rows.sort((a, b) => a.value - b.value); // most drying at top
+  function buildRows(series) {
+    const rows = [];
+    for (const [country, pts] of Object.entries(series)) {
+      if (country.startsWith('__') || !Array.isArray(pts) || !pts.length) continue;
+      const tm = trailingMean(pts, WINDOW);
+      if (!tm) continue;
+      const latest = pts[pts.length - 1];
+      rows.push({
+        country,
+        mean: tm.value,
+        from: tm.from,
+        to: tm.to,
+        latestYear: latest[0],
+        latestValue: latest[1],
+      });
     }
+    return rows.sort((a, b) => a.mean - b.mean);
+  }
 
-    function draw() {
-        const rows = latestValues(data);
-        if (!rows.length) { el.innerHTML = '<p class="nodata">No rainfall data.</p>'; return; }
+  function draw() {
+    const rows = buildRows(data);
+    if (!rows.length) { el.innerHTML = '<p class="nodata">No rainfall data.</p>'; return; }
 
-        const w = el.clientWidth || state.width;
-        const barH = 22, gap = 8;
-        const h = rows.length * (barH + gap) + M.top + M.bottom;
-        svg.attr('width', w).attr('height', h).attr('viewBox', `0 0 ${w} ${h}`);
+    const w = el.clientWidth || state.width;
+    const barH = 22, gap = 8;
+    const h = rows.length * (barH + gap) + M.top + M.bottom;
+    svg.attr('width', w).attr('height', h).attr('viewBox', `0 0 ${w} ${h}`);
 
-        const innerW = w - M.left - M.right;
-        const innerH = h - M.top - M.bottom;
+    const innerW = w - M.left - M.right;
+    const innerH = h - M.top - M.bottom;
 
-        const absMax = d3.max(rows, d => Math.abs(d.value));
-        const x = d3.scaleLinear()
-            .domain([-absMax * 1.2, absMax * 1.2])
-            .range([0, innerW]);
+    // Domain must fit both the mean and the single-year dot.
+    const absMax = d3.max(rows, d => Math.max(Math.abs(d.mean), Math.abs(d.latestValue)));
+    const x = d3.scaleLinear().domain([-absMax * 1.15, absMax * 1.15]).range([0, innerW]);
+    const y = d3.scaleBand().domain(rows.map(d => d.country)).range([0, innerH]).padding(0.28);
+    const zero = x(0);
 
-        const y = d3.scaleBand()
-            .domain(rows.map(d => d.country))
-            .range([0, innerH]).padding(0.28);
+    svg.selectAll('g.root').remove();
+    const g = svg.append('g').attr('class', 'root')
+      .attr('transform', `translate(${M.left},${M.top})`);
 
-        const zero = x(0); // pixel position of zero line
+    g.append('g').call(d3.axisBottom(x).ticks(6).tickSize(innerH).tickFormat(''))
+      .call(s => s.select('.domain').remove())
+      .call(s => s.selectAll('line').attr('stroke', C_GRID).attr('stroke-dasharray', '2,4'));
 
-        svg.selectAll('g.root').remove();
-        const g = svg.append('g').attr('class', 'root')
-            .attr('transform', `translate(${M.left},${M.top})`);
+    g.append('line')
+      .attr('x1', zero).attr('x2', zero).attr('y1', 0).attr('y2', innerH)
+      .attr('stroke', '#bbb').attr('stroke-width', 1.5);
 
-        // Grid
-        g.append('g').call(d3.axisBottom(x).ticks(6).tickSize(innerH).tickFormat(''))
-            .call(s => s.select('.domain').remove())
-            .call(s => s.selectAll('line').attr('stroke', C_GRID).attr('stroke-dasharray', '2,4'));
+    // ── Bars: ten-year mean ─────────────────────────────────────────────
+    g.selectAll('rect.bar').data(rows).join('rect')
+      .attr('class', 'bar')
+      .attr('y', d => y(d.country)).attr('height', y.bandwidth())
+      .attr('x', zero).attr('width', 0)
+      .attr('fill', d => d.mean < 0 ? C_DRY : C_WET)
+      .attr('rx', 3).attr('pointer-events', 'none')
+      .transition().duration(600).ease(d3.easeCubicOut)
+      .delay((_, i) => i * 20)
+      .attr('x', d => d.mean < 0 ? x(d.mean) : zero)
+      .attr('width', d => Math.abs(x(d.mean) - zero));
 
-        // Zero line
-        g.append('line')
-            .attr('x1', zero).attr('x2', zero)
-            .attr('y1', 0).attr('y2', innerH)
-            .attr('stroke', '#bbb').attr('stroke-width', 1.5);
+    // ── Connector from mean to latest single year ───────────────────────
+    g.selectAll('line.spread').data(rows).join('line')
+      .attr('class', 'spread')
+      .attr('y1', d => y(d.country) + y.bandwidth() / 2)
+      .attr('y2', d => y(d.country) + y.bandwidth() / 2)
+      .attr('x1', d => x(d.mean)).attr('x2', d => x(d.mean))
+      .attr('stroke', '#8d8778').attr('stroke-width', 1).attr('opacity', 0.5)
+      .attr('pointer-events', 'none')
+      .transition().delay((_, i) => i * 20 + 400).duration(400)
+      .attr('x2', d => x(d.latestValue));
 
-        // ── ANIMATED bars (pointer-events: none) ────────────────
-        g.selectAll('rect.bar').data(rows).join('rect')
-            .attr('class', 'bar')
-            .attr('y', d => y(d.country)).attr('height', y.bandwidth())
-            // bars grow FROM zero outward
-            .attr('x', zero).attr('width', 0)
-            .attr('fill', d => d.value < 0 ? C_DRY : C_WET)
-            .attr('rx', 3).attr('pointer-events', 'none')
-            .transition().duration(600).ease(d3.easeCubicOut)
-            .delay((_, i) => i * 22)
-            // grow left for negative, right for positive
-            .attr('x', d => d.value < 0 ? x(d.value) : zero)
-            .attr('width', d => Math.abs(x(d.value) - zero));
+    // ── Latest single year, as a hollow dot ─────────────────────────────
+    g.selectAll('circle.latest').data(rows).join('circle')
+      .attr('class', 'latest')
+      .attr('cy', d => y(d.country) + y.bandwidth() / 2)
+      .attr('cx', d => x(d.latestValue))
+      .attr('r', 0)
+      .attr('fill', '#f7f5ef').attr('stroke', '#57534a').attr('stroke-width', 1.4)
+      .attr('pointer-events', 'none')
+      .transition().delay((_, i) => i * 20 + 620).duration(250)
+      .attr('r', 3.6);
 
-        // ── VALUE LABELS — always to the right of the zero line ──
-        // Negative: label appears just right of zero (x(0) + gap)
-        // Positive: label appears just right of bar end (x(value) + gap)
-        g.selectAll('text.val').data(rows).join('text')
-            .attr('class', 'val')
-            .attr('x', d => d.value < 0 ? zero + 6 : x(d.value) + 6)
-            .attr('text-anchor', 'start')
-            .attr('y', d => y(d.country) + y.bandwidth() / 2 + 4)
-            .attr('font-size', 10.5).attr('fill', C_AXIS)
-            .attr('opacity', 0).attr('pointer-events', 'none')
-            .text(d => `${d.value > 0 ? '+' : ''}${d.value.toFixed(0)} mm`)
-            .transition().delay((_, i) => i * 22 + 500).duration(200)
-            .attr('opacity', 0.8);
+    // ── Hit rows ────────────────────────────────────────────────────────
+    g.selectAll('rect.hit').data(rows).join('rect')
+      .attr('class', 'hit')
+      .attr('y', d => y(d.country) - 3).attr('height', y.bandwidth() + 6)
+      .attr('x', 0).attr('width', innerW)
+      .attr('fill', 'transparent')
+      .on('mouseover', function (event, d) {
+        g.selectAll('rect.bar').filter(b => b.country === d.country).attr('opacity', 0.75);
+        const s = v => v > 0 ? '+' : '';
+        const label = d.mean < 0 ? 'drier than baseline' : 'wetter than baseline';
+        const col = d.mean < 0 ? C_DRY : C_WET;
+        const [ex, ey] = d3.pointer(event, el);
+        tip.style('opacity', 1)
+          .style('left', `${Math.min(ex + 14, el.clientWidth - 230)}px`)
+          .style('top', `${ey - 52}px`)
+          .html(
+            `<span class="tt-dot" style="background:${col}"></span>` +
+            `<strong style="color:#fff">${d.country}</strong><br>` +
+            `<span class="tt-value">${s(d.mean)}${d.mean.toFixed(1)} mm</span> ` +
+            `<span class="tt-label">${WINDOW}-yr mean (${d.from}–${d.to}), ${label}</span><br>` +
+            `<span class="tt-label">○ ${d.latestYear} alone: ` +
+            `${s(d.latestValue)}${d.latestValue.toFixed(1)} mm</span>`
+          );
+      })
+      .on('mouseleave', function (event, d) {
+        g.selectAll('rect.bar').filter(b => b.country === d.country).attr('opacity', 1);
+        tip.style('opacity', 0);
+      });
 
-        // ── INVISIBLE full-row hit areas for tooltip ─────────────
-        g.selectAll('rect.hit').data(rows).join('rect')
-            .attr('class', 'hit')
-            .attr('y', d => y(d.country) - 3).attr('height', y.bandwidth() + 6)
-            .attr('x', 0).attr('width', innerW)
-            .attr('fill', 'transparent').attr('cursor', 'default')
-            .on('mouseover', function (event, d) {
-                g.selectAll('rect.bar').filter(b => b.country === d.country).attr('opacity', 0.75);
-                const sign = d.value > 0 ? '+' : '';
-                const label = d.value < 0 ? '● Drying' : '● Wetting';
-                const color = d.value < 0 ? C_DRY : C_WET;
-                const [ex, ey] = d3.pointer(event, el);
-                tip.style('opacity', 1)
-                    .style('left', `${Math.min(ex + 14, el.clientWidth - 200)}px`)
-                    .style('top', `${ey - 40}px`)
-                    .html(
-                        `<span class="tt-dot" style="background:${color}"></span>` +
-                        `<strong style="color:#fff">${d.country}</strong><br>` +
-                        `<span class="tt-value">${sign}${Math.abs(d.value).toFixed(1)} mm</span> ` +
-                        `<span class="tt-label">${label}</span><br>` +
-                        `<span class="tt-label">Data: ${d.year} anomaly</span>`
-                    );
-            })
-            .on('mouseleave', function (event, d) {
-                g.selectAll('rect.bar').filter(b => b.country === d.country).attr('opacity', 1);
-                tip.style('opacity', 0);
-            });
+    g.append('g').call(d3.axisLeft(y).tickSize(0))
+      .call(s => s.select('.domain').remove())
+      .call(s => s.selectAll('text')
+        .attr('fill', C_INK).attr('font-size', 12).attr('dx', -8).attr('text-anchor', 'end'));
 
-        // Y-axis: country names
-        g.append('g').call(d3.axisLeft(y).tickSize(0))
-            .call(s => s.select('.domain').remove())
-            .call(s => s.selectAll('text')
-                .attr('fill', C_INK).attr('font-size', 12).attr('dx', -8).attr('text-anchor', 'end'));
+    g.append('g').attr('transform', `translate(0,${innerH})`)
+      .call(d3.axisBottom(x).ticks(6).tickFormat(d => `${d > 0 ? '+' : ''}${d}`))
+      .call(s => s.select('.domain').attr('stroke', '#ccc'))
+      .call(s => s.selectAll('text').attr('fill', C_AXIS).attr('font-size', 11));
 
-        // X-axis
-        g.append('g').attr('transform', `translate(0,${innerH})`)
-            .call(d3.axisBottom(x).ticks(6).tickFormat(d => `${d > 0 ? '+' : ''}${d}`))
-            .call(s => s.select('.domain').attr('stroke', '#ccc'))
-            .call(s => s.selectAll('text').attr('fill', C_AXIS).attr('font-size', 11));
+    const yrs = `${rows[0].from}–${rows[0].to}`;
+    g.append('text').attr('x', innerW / 2).attr('y', innerH + 40)
+      .attr('text-anchor', 'middle').attr('font-size', 11).attr('fill', C_AXIS)
+      .text(`Rainfall anomaly (mm) · bars = ${yrs} mean · ← drier | wetter →`);
 
-        // X-axis label
-        g.append('text').attr('x', innerW / 2).attr('y', innerH + 42)
-            .attr('text-anchor', 'middle').attr('font-size', 11).attr('fill', C_AXIS)
-            .text(`Rainfall anomaly (mm) · ${rows[0].year} · ← drier  |  wetter →`);
+    g.append('text').attr('x', 0).attr('y', innerH + 56)
+      .attr('font-size', 10).attr('fill', C_AXIS).attr('opacity', 0.75)
+      .text(`○ = ${rows[0].latestYear} alone. The gap between dot and bar is interannual ` +
+        `variability, most of it ENSO.`);
 
-        // Legend
-        const leg = g.append('g').attr('transform', `translate(${innerW + 16}, 6)`);
-        [['Drying', C_DRY], ['Wetting', C_WET]].forEach(([label, col], i) => {
-            leg.append('rect').attr('x', 0).attr('y', i * 24)
-                .attr('width', 12).attr('height', 12).attr('rx', 2).attr('fill', col);
-            leg.append('text').attr('x', 18).attr('y', i * 24 + 10)
-                .attr('font-size', 11).attr('fill', C_INK).attr('opacity', 0.8).text(label);
-        });
-    }
+    // Legend
+    const leg = g.append('g').attr('transform', `translate(${innerW + 16}, 4)`);
+    [['Drier', C_DRY], ['Wetter', C_WET]].forEach(([label, col], i) => {
+      leg.append('rect').attr('x', 0).attr('y', i * 22)
+        .attr('width', 12).attr('height', 12).attr('rx', 2).attr('fill', col);
+      leg.append('text').attr('x', 18).attr('y', i * 22 + 10)
+        .attr('font-size', 11).attr('fill', C_INK).attr('opacity', 0.8).text(label);
+    });
+    leg.append('circle').attr('cx', 6).attr('cy', 2 * 22 + 6).attr('r', 3.6)
+      .attr('fill', '#f7f5ef').attr('stroke', '#57534a').attr('stroke-width', 1.4);
+    leg.append('text').attr('x', 18).attr('y', 2 * 22 + 10)
+      .attr('font-size', 11).attr('fill', C_INK).attr('opacity', 0.8)
+      .text('Single year');
+  }
 
-    draw();
-    return {
-        update(newOpts = {}) { Object.assign(state, newOpts); draw(); },
-        destroy() { el.innerHTML = ''; },
-    };
+  draw();
+  return {
+    update(newOpts = {}) { Object.assign(state, newOpts); draw(); },
+    destroy() { el.innerHTML = ''; },
+  };
 }
