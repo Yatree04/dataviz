@@ -268,8 +268,13 @@ export async function loadData() {
     };
   }).filter(Boolean).sort((a, b) => b.change - a.change);
 
+  // SST_ANOM, not ST_ANOM: the map is labelled sea-surface temperature and its
+  // tooltip compares each territory against the SST regional mean, so it has to
+  // be drawn from the same indicator. ST_ANOM covers 22 territories and SST_ANOM
+  // 21 — Pitcairn has a land series but no sea-surface one, and must stay blank
+  // rather than borrow the other indicator's number.
   const mapCountries = Object.entries(COORDS).map(([iso, [lat, lon]]) => {
-    const series = ST[countryName(iso)];
+    const series = SST[countryName(iso)];
     if (!series || !series.length) return null;
     return { iso, name: countryName(iso), lat, lon, series };
   }).filter(Boolean);

@@ -4,6 +4,7 @@
 // so rather than drawing a smoother line than the data supports.
 
 import { loadData, COLORS, ENSO_EVENTS, slope } from './data.js';
+import { buildSSTMap } from './sstmap.js';
 
 const FONT = { fontFamily: 'Inter, sans-serif' };
 const AXIS_LABEL = { style: { fontSize: '10px', color: COLORS.light } };
@@ -313,8 +314,8 @@ const setText = (sel, value) => {
     }),
   });
 
-  // ── 7. The map — one bubble per country, scrubbed by year ─────────────────
-  await buildMap(D);
+  // ── 7. The map — Pacific overview, drilling into one territory ────────────
+  await buildSSTMap(D);
 
   // ── 8. Figures quoted in the prose, computed rather than typed ────────────
   // Every number the copy asserts is looked up here. If a series is missing the
@@ -423,111 +424,3 @@ const setText = (sel, value) => {
   setText('#fig-water-decliners',
     unitList(decliners, (r) => signed(r.change, 1), 'points', null));
 })();
-
-async function buildMap(D) {
-  const host = document.getElementById('chart-sst-map');
-  if (!host || typeof Highcharts.mapChart !== 'function') return;
-
-  let topology;
-  try {
-    topology = await fetch('https://code.highcharts.com/mapdata/custom/world.topo.json').then((r) => r.json());
-  } catch (e) {
-    host.classList.add('pending');
-    host.style.minHeight = '';
-    host.innerHTML = '<div><p class="pending-title">Map topology did not load</p>'
-      + '<p class="pending-body">The world outline is fetched from the Highcharts map CDN. '
-      + 'Nothing else on this page depends on it — the temperature figures above are '
-      + 'computed from the same series the map would draw.</p></div>';
-    return;
-  }
-
-  const YEAR_MIN = 1985, YEAR_MAX = 2025;
-  const valueAt = (series, year) => (series.find((p) => p[0] === year) || [])[1] ?? null;
-  const bubbles = (year) => D.mapCountries.map((c) => {
-    const v = valueAt(c.series, year) ?? 0;
-    return {
-      lat: c.lat, lon: c.lon, name: c.name, colorValue: v,
-      z: 6 + Math.min(Math.abs(v), 1.5) * 14,
-    };
-  });
-
-  const chart = Highcharts.mapChart(host, {
-    chart: { backgroundColor: 'transparent', animation: false, height: 520 },
-    mapView: { projection: { name: 'EqualEarth', rotation: [-180] }, center: [180, -8], zoom: 2.6 },
-    mapNavigation: { enabled: true, buttonOptions: { verticalAlign: 'bottom' } },
-    colorAxis: {
-      min: -1.3, max: 1.3,
-      stops: [[0, COLORS.blue], [0.5, '#F4F1EA'], [1, COLORS.red]],
-      labels: { format: '{value:+.1f}°C', style: { fontSize: '10px', color: COLORS.light } },
-    },
-    legend: { enabled: false },
-    series: [
-      {
-        type: 'map', mapData: topology, nullColor: '#E8E4DA',
-        borderColor: '#C9C2B4', borderWidth: 0.6,
-        enableMouseTracking: false, showInLegend: false,
-      },
-      {
-        type: 'mapbubble', id: 'temp', name: 'ST anomaly', data: bubbles(YEAR_MAX),
-        minSize: 6, maxSize: 26, marker: { lineWidth: 1, lineColor: 'rgba(25,25,25,0.3)' },
-        tooltip: {
-          pointFormatter() {
-            return `<b>${this.name}</b><br>${this.colorValue > 0 ? '+' : ''}${this.colorValue.toFixed(2)}°C`;
-          },
-        },
-      },
-    ],
-  });
-
-  // Year scrubber wired to the existing markup.
-  const track = document.querySelector('.timeline-track');
-  const fill = document.querySelector('.timeline-fill');
-  const handle = document.querySelector('.timeline-handle');
-  const playBtn = document.querySelector('.map-ui .play-btn');
-  const yearLabel = document.querySelector('.map-ui-year');
-  let year = YEAR_MAX, timer = null;
-
-  function render() {
-    chart.get('temp').setData(bubbles(year), true, { duration: 350 });
-    const pct = ((year - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100;
-    if (fill) fill.style.width = `${pct}%`;
-    if (handle) handle.style.left = `${pct}%`;
-    if (yearLabel) yearLabel.textContent = year;
-  }
-
-  function stop() {
-    clearInterval(timer); timer = null;
-    if (playBtn) playBtn.classList.remove('playing');
-  }
-
-  if (track) {
-    const seek = (clientX) => {
-      const r = track.getBoundingClientRect();
-      const t = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
-      year = Math.round(YEAR_MIN + t * (YEAR_MAX - YEAR_MIN));
-      render();
-    };
-    track.addEventListener('pointerdown', (e) => {
-      stop(); seek(e.clientX);
-      const move = (ev) => seek(ev.clientX);
-      const up = () => {
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-      };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-    });
-  }
-  if (playBtn) {
-    playBtn.addEventListener('click', () => {
-      if (timer) return stop();
-      if (year >= YEAR_MAX) year = YEAR_MIN;
-      playBtn.classList.add('playing');
-      timer = setInterval(() => {
-        year = year >= YEAR_MAX ? YEAR_MIN : year + 1;
-        render();
-      }, 380);
-    });
-  }
-  render();
-}

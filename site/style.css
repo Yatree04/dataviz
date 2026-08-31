@@ -231,16 +231,16 @@ main { padding: 0 2rem 8rem; max-width: 1167px; margin: 0 auto; }
 .timeline-track {
   position: relative;
   flex: 1;
-  height: 4px;
+  height: 3px;
   border-radius: 999px;
-  background: #ececec;
+  background: #ededeb;
   cursor: pointer;
 }
 .timeline-fill {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 999px;
-  background: var(--primary);
+  background: rgba(42, 120, 214, 0.38);
 }
 .timeline-handle {
   position: absolute;
@@ -420,4 +420,104 @@ footer p:last-child { margin-bottom: 0; }
   .s-md { padding-top: 2rem; }
   .dumbbell-label { flex-basis: 6rem; font-size: 0.6875rem; }
   footer { padding: 1.5rem 1.25rem; }
+}
+
+/* ── SST map: drilldown ──────────────────────────────────────────────────── */
+
+/* The map is the primary object on the page, so it breaks out of the reading
+   column and takes the full width of the layout. */
+.map-section {
+  width: 100vw;
+  max-width: 1167px;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.map-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.5rem;
+  margin: -0.25rem 0 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+}
+.crumb-here { color: var(--text-secondary); }
+.crumb-sep { color: #d4d0ca; }
+.crumb-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--primary);
+  cursor: pointer;
+}
+.crumb-link::before { content: '← '; }
+.crumb-link:hover { text-decoration: underline; }
+
+.map-hint {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0.75rem 0 0;
+}
+
+.map-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.map-key {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.key-ramp {
+  width: 110px;
+  height: 7px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #4A90E2, #F4F1EA, #D95F52);
+}
+
+#territory-detail {
+  margin-top: 2.25rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.detail-title {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--foreground);
+  margin: 0 0 0.25rem;
+}
+
+.detail-sub {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0 0 0.5rem;
+}
+
+/* tooltips stay quiet: no big boxes */
+.tt-name { font-weight: 600; color: var(--foreground); }
+.tt-year { color: var(--muted-foreground); }
+.tt-val { font-weight: 500; color: var(--foreground); font-variant-numeric: tabular-nums; }
+.tt-ref { color: var(--muted-foreground); font-size: 11px; }
+
+@media (max-width: 680px) {
+  .map-section { padding-left: 1.25rem; padding-right: 1.25rem; }
 }

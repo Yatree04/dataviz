@@ -90,9 +90,10 @@
         (IPCC AR6 WGI Ch. 9). From here the cascade splits in two.</p>
     </section>
 
-    <section class="s-md">
+    <section class="s-md map-section">
       <p class="label">Sea-surface temperature · Pacific regional map</p>
-      <div class="chart" id="chart-sst-map" style="min-height:520px"></div>
+      <nav class="map-breadcrumb" id="map-breadcrumb"></nav>
+      <div class="chart" id="chart-sst-map" style="min-height:620px"></div>
       <div class="map-ui">
         <button class="play-btn" title="play">▶</button>
         <div class="timeline-track">
@@ -100,6 +101,19 @@
           <div class="timeline-handle"></div>
         </div>
         <span class="map-ui-year">—</span>
+      </div>
+      <div class="map-foot">
+        <p class="map-hint">Click a territory to hold it. Double-click to zoom in.</p>
+        <div class="map-key">
+          <span>−1.2</span><span class="key-ramp"></span><span>+1.2 °C</span>
+        </div>
+      </div>
+
+      <div id="territory-detail" hidden>
+        <p class="detail-title" id="detail-title"></p>
+        <p class="detail-sub">Sea-surface temperature anomaly · every reported year ·
+          against the Pacific regional mean</p>
+        <div id="detail-chart"></div>
       </div>
     </section>
 
