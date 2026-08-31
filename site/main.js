@@ -257,6 +257,128 @@ const setText = (sel, value) => {
     }),
   });
 
+  // ── 6b. Shoreline change ──────────────────────────────────────────────────
+  // Two panels over the same aggregate, because one number per territory is
+  // not what the data says. The first shows how wide the spread is inside each
+  // territory; the second shows how much of the coastline moves enough, and
+  // consistently enough, for DEP to call it movement at all.
+  const SH = D.shoreline;
+  const nfmt = (n) => n.toLocaleString('en-US');
+  const andList = (xs) => (xs.length < 2 ? xs.join('')
+    : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+  setText('#fig-sh-transects', nfmt(D.shorelineTotals.transects));
+  setText('#fig-sh-good', `${nfmt(D.shorelineTotals.good)} (${D.shorelineTotals.pctGood}%)`);
+
+  const byRate = [...SH].sort((a, b) => a.medianRate - b.medianRate);
+  const rateColour = (v) => (v < 0 ? COLORS.red : v > 0 ? COLORS.blue : COLORS.light);
+
+  Highcharts.chart('chart-shoreline', baseChart({
+    chart: { type: 'columnrange', inverted: true, height: 520, marginLeft: 130 },
+    xAxis: {
+      categories: byRate.map((r) => r.name),
+      lineColor: COLORS.grid, tickWidth: 0,
+      labels: { style: { fontSize: '11px', color: COLORS.muted, fontFamily: 'Inter, sans-serif' } },
+    },
+    yAxis: {
+      title: { text: 'metres per year', style: { fontSize: '10px', color: COLORS.light } },
+      gridLineColor: COLORS.grid,
+      labels: AXIS_LABEL,
+      plotLines: [{ value: 0, color: '#cfcfcf', width: 1, zIndex: 4 }],
+    },
+    legend: {
+      itemStyle: { fontSize: '10px', fontWeight: '400', color: COLORS.muted },
+      symbolRadius: 2,
+    },
+    plotOptions: {
+      columnrange: { pointWidth: 7, borderWidth: 0, borderRadius: 3 },
+      series: { states: { inactive: { opacity: 1 } } },
+    },
+    tooltip: {
+      shared: true, useHTML: true, borderWidth: 0, shadow: false,
+      backgroundColor: 'rgba(255,255,255,0.97)',
+      style: { fontFamily: 'Inter, sans-serif', fontSize: '11px' },
+      formatter() {
+        const r = byRate[this.points[0].point.index];
+        const sign = (v, d) => `${v > 0 ? '+' : ''}${v.toFixed(d)}`;
+        // Cumulative movement is only quoted where DEP published it, with the
+        // share it was published on, because it is missing on 40.7% of good
+        // transects and missing unevenly between territories.
+        const nsm = r.medianNsm == null
+          ? `<span style="color:${COLORS.light}">cumulative movement not published by DEP for any `
+            + `of this territory&rsquo;s good transects</span>`
+          : `median cumulative movement <b>${sign(r.medianNsm, 1)} m</b> `
+            + `<span style="color:${COLORS.light}">(published on ${r.pctNsm}% of them)</span>`;
+        return `<b>${r.name}</b><br>`
+          + `median rate <b style="color:${rateColour(r.medianRate)}">${sign(r.medianRate, 3)} m/yr</b><br>`
+          + `middle half: ${sign(r.p25, 2)} to ${sign(r.p75, 2)} m/yr<br>`
+          + `<span style="color:${COLORS.light}">10th–90th percentile ${sign(r.p10, 2)} to ${sign(r.p90, 2)}</span><br>`
+          + `${nfmt(r.good)} good transects of ${nfmt(r.transects)}<br>`
+          + `<span style="color:${COLORS.red}">${r.pctRetreating}% retreating</span> &middot; `
+          + `<span style="color:${COLORS.blue}">${r.pctAccreting}% accreting</span><br>`
+          + nsm;
+      },
+    },
+    series: [
+      {
+        name: 'Middle half of transects',
+        color: 'rgba(153,153,153,0.28)',
+        data: byRate.map((r) => ({ low: r.p25, high: r.p75 })),
+      },
+      {
+        type: 'scatter', name: 'Median transect',
+        marker: { symbol: 'circle', radius: 5, lineWidth: 1, lineColor: '#fff' },
+        data: byRate.map((r, i) => ({ x: i, y: r.medianRate, color: rateColour(r.medianRate) })),
+      },
+    ],
+  }));
+
+  // Diverging shares, sorted by net balance. Built as HTML rather than a chart
+  // for the same reason the dumbbells above are: the rows are a table that
+  // happens to be drawn, and they stay readable at any width.
+  const balance = document.getElementById('shoreline-balance');
+  if (balance) {
+    const byNet = [...SH].sort(
+      (a, b) => (b.pctAccreting - b.pctRetreating) - (a.pctAccreting - a.pctRetreating));
+    // One scale for every row, so the bars are comparable down the column.
+    const span = Math.max(...SH.map((r) => Math.max(r.pctRetreating, r.pctAccreting)));
+    balance.innerHTML = byNet.map((r) => {
+      const net = r.pctAccreting - r.pctRetreating;
+      const w = (v) => `${(50 * v / span).toFixed(2)}%`;
+      const stable = (100 - r.pctRetreating - r.pctAccreting).toFixed(1);
+      const tip = `${r.name}: ${r.retreating.toLocaleString('en-US')} retreating, `
+        + `${r.accreting.toLocaleString('en-US')} accreting, ${stable}% neither, `
+        + `of ${r.good.toLocaleString('en-US')} good transects`;
+      return `<div class="balance-row" title="${tip}">
+        <div class="balance-label">${r.name}</div>
+        <div class="balance-track">
+          <div class="balance-mid"></div>
+          <div class="balance-bar bar-red" style="right:50%;width:${w(r.pctRetreating)}"></div>
+          <div class="balance-bar bar-blue" style="left:50%;width:${w(r.pctAccreting)}"></div>
+        </div>
+        <div class="balance-value ${net < 0 ? 'value-red' : 'value-blue'}">${net > 0 ? '+' : ''}${net.toFixed(1)}pt</div>
+      </div>`;
+    }).join('');
+  }
+
+  // The one figure that has to carry its own caveat wherever it appears.
+  const nsmCov = SH.reduce((a, r) => a + r.nsmPublished, 0);
+  const nsmNone = SH.filter((r) => r.medianNsm == null).map((r) => r.name);
+  const nsmLo = SH.reduce((m, r) => (r.pctNsm < m.pctNsm ? r : m));
+  const nsmHi = SH.reduce((m, r) => (r.pctNsm > m.pctNsm ? r : m));
+  const nsmAlsoNone = nsmNone.filter((n) => n !== nsmLo.name);
+  const cov = (r) => (r.pctNsm === 0
+    ? `${r.name} has none at all`
+    : `${r.name} has it on ${r.pctNsm.toFixed(1)}%`);
+  setText('#sh-nsm-note',
+    `Cumulative movement in metres — DEP’s net-shoreline-movement field — is `
+    + `deliberately not drawn here. It is published on only `
+    + `${(100 * nsmCov / D.shorelineTotals.good).toFixed(1)}% of good transects and the gaps are `
+    + `not evenly spread — ${cov(nsmLo)}, ${cov(nsmHi)}`
+    + `${nsmAlsoNone.length ? ` (${andList(nsmAlsoNone)} also ${nsmAlsoNone.length === 1 ? 'has' : 'have'} none)` : ''}. `
+    + `Rate of change is the only field the file carries for every good transect in every `
+    + `territory, so it is the only one compared across them. Each territory’s own cumulative `
+    + `figure is in its tooltip above, with the share it was measured on.`);
+
   // ── 7. The map — Pacific overview, drilling into one territory ────────────
   await buildSSTMap(D);
 

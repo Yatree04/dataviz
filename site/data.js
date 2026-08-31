@@ -150,10 +150,11 @@ const isTotal = (r) =>
 // ── loader ──────────────────────────────────────────────────────────────────
 
 export async function loadData() {
-  const [climateText, affectedText, waterText] = await Promise.all([
+  const [climateText, affectedText, waterText, shorelineText] = await Promise.all([
     fetch('data/sea_temp.csv').then((r) => r.text()),
     fetch('data/affected_people.csv').then((r) => r.text()),
     fetch('data/drinking_water.csv').then((r) => r.text()),
+    fetch('data/shoreline_change.csv').then((r) => r.text()),
   ]);
 
   const ST = {}, SST = {}, GHG = {}, RAIN = {}, SEA = {};
@@ -283,6 +284,59 @@ export async function loadData() {
     return { iso, name: countryName(iso), lat, lon, series };
   }).filter(Boolean);
 
+  // ── shoreline ─────────────────────────────────────────────────────
+  // Counted, not modelled. Every column in shoreline_change.csv is an
+  // aggregate over Digital Earth Pacific's own rates_of_change transects
+  // (release v1.0-dataset, dep_ls_coastlines .gpkg, 2,057,082 rows). The
+  // GeoPackage is 1.97 GB so it stays out of the repository; only the
+  // per-territory counts are committed.
+  //
+  // Three deliberate choices, all of them DEP's rather than ours:
+  //  · only transects DEP flags certainty='good' are counted (65.6% of the
+  //    file). The rest carry DEP's own quality warnings.
+  //  · "retreating" and "accreting" use DEP's cartographic threshold from
+  //    its published QGIS project: sig_time <= 0.01 and |rate_time| >= 0.3.
+  //    Everything in between is neither, and is left uncounted rather than
+  //    rounded into one side.
+  //  · rate_time (metres/year) is the only field with full coverage across
+  //    all 22 territories. Net shoreline movement (nsm, cumulative metres) is
+  //    withheld by DEP on 40.7% of good transects and the missingness is
+  //    wildly uneven — Niue 0% published, Vanuatu 90.5% — so it is carried
+  //    per territory with its coverage attached and never compared across
+  //    territories as if it were complete.
+  const shoreline = parseCSV(shorelineText)
+    .filter((r) => r.iso)
+    .map((r) => ({
+      iso: r.iso,
+      name: countryName(r.iso),
+      transects: +r.transects,
+      good: +r.good,
+      medianRate: +r.median_rate,
+      p10: +r.p10_rate,
+      p25: +r.p25_rate,
+      p75: +r.p75_rate,
+      p90: +r.p90_rate,
+      retreating: +r.retreating,
+      accreting: +r.accreting,
+      pctRetreating: +r.pct_retreating,
+      pctAccreting: +r.pct_accreting,
+      nsmPublished: +r.nsm_published,
+      pctNsm: +r.pct_nsm_published,
+      // Blank, not zero, where DEP published no usable endpoint pair.
+      medianNsm: r.median_nsm === '' ? null : +r.median_nsm,
+    }));
+  const shSum = (k) => shoreline.reduce((a, r) => a + r[k], 0);
+  const shorelineTotals = {
+    territories: shoreline.length,
+    transects: shSum('transects'),
+    good: shSum('good'),
+    retreating: shSum('retreating'),
+    accreting: shSum('accreting'),
+  };
+  shorelineTotals.pctGood = +(100 * shorelineTotals.good / shorelineTotals.transects).toFixed(1);
+  shorelineTotals.pctRetreating = +(100 * shorelineTotals.retreating / shorelineTotals.good).toFixed(1);
+  shorelineTotals.pctAccreting = +(100 * shorelineTotals.accreting / shorelineTotals.good).toFixed(1);
+
   return {
     sstRegional, sstByCountry, top10,
     stRegional, stByCountry,
@@ -306,5 +360,6 @@ export async function loadData() {
     ghgTrustedCount: ghgLatest.filter((g) => !g.suspect).length,
     ghgTotalCount: ghgLatest.length,
     affected, waterGaps, waterChange, mapCountries,
+    shoreline, shorelineTotals,
   };
 }

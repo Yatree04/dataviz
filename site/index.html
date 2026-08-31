@@ -213,10 +213,14 @@
 
     <!-- ── Section 6: Shoreline ── -->
     <section class="s-lg">
-      <p class="body strong">Ten million transects, no model</p>
+      <p class="body strong">Two million transects, no model</p>
       <p class="body">Digital Earth Pacific&rsquo;s rates-of-change layer fits a trend to each
-        shoreline transect across the region and reports metres gained or lost per year. Ten point
-        four million of them. Red retreats, blue builds.</p>
+        shoreline transect across the region and reports metres gained or lost per year.
+        <span id="fig-sh-transects">&hellip;</span> of them fall inside one of the twenty-two
+        Pacific territories mapped here, of which
+        <span id="fig-sh-good">&hellip;</span> carry Digital Earth Pacific&rsquo;s own
+        <code>good</code> quality flag and are the only ones counted below. Red retreats,
+        blue builds.</p>
       <p class="body">The Pacific pattern is not uniform retreat, and the literature agrees:
         Duvat&rsquo;s 2019 synthesis of 709 islands and Kench&rsquo;s 2018 work on Tuvalu both
         find most atoll islands stable or growing in area as reef-derived sediment redistributes.
@@ -227,17 +231,27 @@
     </section>
 
     <section class="s-md">
-      <p class="label">Shoreline change · Digital Earth Pacific · rates of change (m/year)</p>
-      <div class="chart pending" id="chart-shoreline">
-        <div>
-          <p class="pending-title">Not drawn — the geometry is not in this repository</p>
-          <p class="pending-body">The rates-of-change layer is vector geometry
-            (<code>.gpkg</code>), not a CSV. <code>Mapping.qgz</code> references
-            <code>dep_ls_coastlines_0-7-0-55.gpkg</code> by relative path, and only the project
-            file was committed — the geometry itself was not. This panel stays empty until that
-            file, or a per-territory summary exported from it, is added to the repository.</p>
-        </div>
-      </div>
+      <p class="label">Rate of shoreline change &middot; median and interquartile range of each
+        territory&rsquo;s good-quality transects</p>
+      <div class="chart" id="chart-shoreline"></div>
+      <p class="caption">The bar is the middle half of transects in that territory; the dot is
+        the median. Nearly every territory straddles zero &mdash; the same coastline is building
+        in one place and retreating in another, and a single national number hides that. The
+        tails are wider than the bars and are given per territory in the tooltip: Guam has the
+        fewest usable transects of any territory here (446 of 6,751 survive the quality flag) and
+        its top decile runs past +20&nbsp;m/yr, which is why the range shown is the quartiles and
+        not the deciles.</p>
+
+      <p class="label" style="margin-top:3rem">Shoreline balance &middot; share of transects
+        significantly retreating or accreting &middot; sorted by net</p>
+      <div class="balance" id="shoreline-balance"></div>
+      <p class="caption">Counted with Digital Earth Pacific&rsquo;s own threshold from its
+        published map project &mdash; <code>sig_time &le; 0.01</code> and
+        <code>|rate_time| &ge; 0.3&nbsp;m/yr</code>. Transects between those bounds are neither
+        retreating nor accreting and are left out of both bars rather than rounded into one;
+        the grey remainder is the rest of the coastline.</p>
+
+      <p class="caption" id="sh-nsm-note"></p>
     </section>
 
     <!-- ── Conclusion ── -->
