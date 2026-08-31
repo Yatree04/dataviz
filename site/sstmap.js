@@ -10,7 +10,7 @@
 // observation with no polygon in Natural Earth's country layer — so it appears
 // as a marker only. Neither is given a number it does not have.
 
-import { COLORS, COORDS, countryName } from './data.js';
+import { COLORS, COORDS, ENSO_EVENTS, countryName } from './data.js';
 
 const FONT = { fontFamily: 'Inter, sans-serif' };
 const LAND = '#E9E5DC';
@@ -81,15 +81,36 @@ export async function buildSSTMap(D) {
   let drilled = false;      // true once the view is inside a territory
 
   // ── data builders ─────────────────────────────────────────────────────────
+  // Once we are inside a territory, everything else desaturates so the subject
+  // of the detail graph is unmistakable. The dim colour is set on the datum
+  // rather than as a series opacity, which would fade the selection too.
+  const DIM_AREA = '#EDE9E1';
+  const DIM_MARK = '#DAD5CB';
+  const dimmed = (iso) => drilled && iso !== selected;
+
   const choropleth = (y) => ISOS
     .filter((iso) => geomOf[iso] && valueAt(iso, y) !== null)
-    .map((iso) => ({ iso, value: valueAt(iso, y) }));
+    .map((iso) => ({
+      iso, value: valueAt(iso, y),
+      ...(dimmed(iso) ? { color: DIM_AREA } : {}),
+      borderColor: iso === selected ? COLORS.ink : 'rgba(25,25,25,0.28)',
+      borderWidth: iso === selected ? (drilled ? 2.6 : 1.8) : 0.7,
+    }));
 
   const markers = (y) => ISOS.map((iso) => {
     const v = valueAt(iso, y);
     if (v === null || !COORDS[iso]) return null;
     const [lat, lon] = COORDS[iso];
-    return { iso, lat, lon, name: countryName(iso), colorValue: v, value: v };
+    const on = iso === selected;
+    return {
+      iso, lat, lon, name: countryName(iso), colorValue: v, value: v,
+      ...(dimmed(iso) ? { color: DIM_MARK } : {}),
+      marker: {
+        radius: on ? (drilled ? 10 : 9) : 7,
+        lineWidth: on ? 1.8 : 0.8,
+        lineColor: on ? COLORS.ink : 'rgba(25,25,25,0.30)',
+      },
+    };
   }).filter(Boolean);
 
   function tooltipFor(iso) {
@@ -159,7 +180,7 @@ export async function buildSSTMap(D) {
       {
         type: 'mappoint', id: 'sst-point', data: markers(Y_MAX), zIndex: 2,
         colorKey: 'colorValue',
-        marker: { symbol: 'circle', radius: 5, lineWidth: 1.2, lineColor: 'rgba(25,25,25,0.55)' },
+        marker: { symbol: 'circle', radius: 7, lineWidth: 0.8, lineColor: 'rgba(25,25,25,0.30)' },
         dataLabels: { enabled: false },
         tooltip: { pointFormatter() { return tooltipFor(this.iso); } },
       },
@@ -185,34 +206,18 @@ export async function buildSSTMap(D) {
   }
 
   function paintSelection() {
-    const area = chart.get('sst-area');
-    // Atoll states are the point of this map and their land is sub-pixel at any
-    // zoom that still shows the whole territory. So a selected territory is made
-    // legible by stroke weight rather than by zooming further into empty ocean.
-    for (const p of area.points) {
-      const on = p.iso === selected;
-      p.update({
-        borderColor: on ? COLORS.ink : 'rgba(25,25,25,0.28)',
-        borderWidth: on ? (drilled ? 2.6 : 1.8) : 0.7,
-      }, false);
-    }
-    for (const p of chart.get('sst-point').points) {
-      const on = p.iso === selected;
-      p.update({ marker: {
-        radius: on ? (drilled ? 9 : 7.5) : 5,
-        lineWidth: on ? 2 : 1.2,
-        lineColor: on ? COLORS.ink : 'rgba(25,25,25,0.55)',
-      } }, false);
-    }
-    // Once inside a territory, its own islands are drawn explicitly and the
-    // other markers step back so the subject is unambiguous.
+    chart.get('sst-area').setData(choropleth(year), false);
+    chart.get('sst-point').setData(markers(year), false);
     const parts = chart.get('sel-parts');
     if (parts) {
-      parts.setData(drilled && selected ? partsOf[selected]?.map((q) => ({
-        lat: q.lat, lon: q.lon, colorValue: valueAt(selected, year),
-      })) || [] : [], false);
+      // At territory zoom an atoll state's land is sub-pixel, so the selection
+      // is drawn as its actual islands, each at the centroid of its own part.
+      parts.setData(drilled && selected
+        ? (partsOf[selected] || []).map((q) => ({
+          lat: q.lat, lon: q.lon, colorValue: valueAt(selected, year),
+        }))
+        : [], false);
     }
-    chart.get('sst-point').update({ opacity: drilled ? 0.45 : 1 }, false);
     chart.redraw();
   }
 
@@ -268,6 +273,7 @@ export async function buildSSTMap(D) {
     if (!detail) return;
     detail.hidden = false;
     if (detailTitle) detailTitle.textContent = countryName(iso);
+    const sub = document.getElementById('detail-sub');
 
     // Actual observations only. Years the file does not report stay absent, and
     // a null breaks the line rather than drawing across a gap that isn't there.
@@ -278,21 +284,42 @@ export async function buildSSTMap(D) {
       mean.push([y, Number.isFinite(regionalAt[y]) ? regionalAt[y] : null]);
     }
 
+    // The territory's own long-term mean, over its whole record — the
+    // reference the anomaly is read against.
+    const vals = own.map((p) => p[1]).filter((v) => v !== null);
+    const longTerm = vals.reduce((a, b) => a + b, 0) / vals.length;
+
+    if (sub) {
+      sub.textContent = `Sea-surface temperature anomaly · every reported year `
+        + `· dashed line is ${countryName(iso)}'s long-term mean ${fmt(longTerm)} °C `
+        + `· grey is the Pacific regional mean`;
+    }
+
     if (detailChart) detailChart.destroy();
     detailChart = Highcharts.chart('detail-chart', {
-      chart: { backgroundColor: 'transparent', height: 260, style: FONT, spacing: [8, 2, 4, 2] },
+      chart: { backgroundColor: 'transparent', height: 280, style: FONT, spacing: [8, 2, 4, 2] },
       title: { text: null },
       credits: { enabled: false },
       legend: { enabled: false },
       xAxis: {
         min: Y_MIN, max: Y_MAX, tickInterval: 25, lineColor: '#E2E8F0', tickLength: 0,
         labels: { style: { fontSize: '10px', color: COLORS.light } },
-        plotLines: [{ id: 'cursor', value: year, color: COLORS.ink, width: 1, zIndex: 4, dashStyle: 'Dot' }],
+        // ENSO, the same shading the sea-level chart uses.
+        plotBands: ENSO_EVENTS.map((e) => ({
+          from: e.start - 0.5, to: e.end + 0.5,
+          color: e.phase === 'el-nino' ? 'rgba(217,95,82,0.07)' : 'rgba(74,144,226,0.07)',
+        })),
+        plotLines: [{ id: 'cursor', value: year, color: COLORS.ink, width: 1, zIndex: 5, dashStyle: 'Dot' }],
       },
       yAxis: {
         title: { text: null }, gridLineColor: COLORS.grid,
         labels: { format: '{value:.1f}°C', style: { fontSize: '10px', color: COLORS.light } },
-        plotLines: [{ value: 0, color: '#DDD', width: 1 }],
+        plotLines: [
+          { value: 0, color: '#DDD', width: 1, zIndex: 1 },
+          {
+            value: longTerm, color: COLORS.accent, width: 1, dashStyle: 'Dash', zIndex: 2,
+          },
+        ],
       },
       tooltip: {
         useHTML: true, shared: false, backgroundColor: 'rgba(255,255,255,0.97)',
@@ -300,10 +327,16 @@ export async function buildSSTMap(D) {
         style: { fontSize: '12px' },
         pointFormatter() {
           return `<span class="tt-year">Year ${this.x}</span><br>`
-            + `<span class="tt-val">SST anomaly ${fmt(this.y)} °C</span>`;
+            + `<span class="tt-val">SST anomaly ${fmt(this.y)} °C</span><br>`
+            + `<span class="tt-ref">${fmt(this.y - longTerm)} against this territory's mean</span>`;
         },
       },
-      plotOptions: { series: { marker: { enabled: false }, connectNulls: false } },
+      plotOptions: {
+        series: {
+          marker: { enabled: false, states: { hover: { enabled: true, radius: 3.5 } } },
+          connectNulls: false,
+        },
+      },
       series: [
         {
           name: 'Pacific regional mean', data: mean, color: '#C7C2B8',
@@ -313,9 +346,11 @@ export async function buildSSTMap(D) {
           name: countryName(iso), data: own, color: COLORS.accent,
           lineWidth: 1.5, zIndex: 2,
           states: { hover: { lineWidth: 1.5 } },
+          // Hovering the record moves the map to that year, so the two halves
+          // of the drilldown stay one object rather than two charts.
+          point: { events: { mouseOver() { scrubTo(this.x); } } },
         },
         {
-          // the selected year, as a single point on the territory's own series
           id: 'cursor-point', type: 'scatter', data: cursorPoint(iso),
           color: COLORS.ink, zIndex: 3, enableMouseTracking: false,
           marker: { enabled: true, radius: 4, symbol: 'circle' },
@@ -329,6 +364,23 @@ export async function buildSSTMap(D) {
     return v === null ? [] : [[year, v]];
   };
 
+  // Hovering the detail record scrubs the map. Coalesced to one update per
+  // frame — mouseOver fires far faster than the map can usefully redraw.
+  let pending = null;
+  function scrubTo(y) {
+    if (y === year || y == null) return;
+    pending = y;
+    if (scrubTo.queued) return;
+    scrubTo.queued = true;
+    requestAnimationFrame(() => {
+      scrubTo.queued = false;
+      if (pending === null || pending === year) return;
+      year = pending;
+      stop();
+      render();
+    });
+  }
+
   // ── one year control, driving every view ──────────────────────────────────
   const track = document.querySelector('.timeline-track');
   const fill = document.querySelector('.timeline-fill');
@@ -338,8 +390,6 @@ export async function buildSSTMap(D) {
   let timer = null;
 
   function render() {
-    chart.get('sst-area').setData(choropleth(year), false);
-    chart.get('sst-point').setData(markers(year), false);
     paintSelection();
 
     const pct = ((year - Y_MIN) / (Y_MAX - Y_MIN)) * 100;

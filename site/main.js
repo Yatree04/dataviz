@@ -138,63 +138,6 @@ const setText = (sel, value) => {
     input.addEventListener('input', () => { stop(); renderYear(); });
   }
 
-  // ── 3. Temperature, regional mean + a selected country ────────────────────
-  const tempYears = D.sstRegional.map((p) => p[0]);
-  const countryList = Object.keys(D.sstByCountry).sort();
-  let activeCountry = countryList.includes('Marshall Islands') ? 'Marshall Islands' : countryList[0];
-
-  const tempChart = Highcharts.chart('chart-temp', {
-    chart: baseChart({ type: 'line', height: 380 }),
-    xAxis: {
-      categories: tempYears.map(String),
-      tickInterval: 25, lineWidth: 0, tickWidth: 0,
-      labels: { ...AXIS_LABEL },
-      plotBands: ensoBands(tempYears),
-    },
-    yAxis: {
-      title: { text: null }, gridLineColor: COLORS.grid,
-      labels: { ...AXIS_LABEL, format: '{value:.1f}°C' },
-      plotLines: [{ value: 0, color: '#ddd', width: 1, zIndex: 2 }],
-    },
-    legend: { enabled: false },
-    tooltip: { shared: true, valueDecimals: 2, valueSuffix: '°C' },
-    plotOptions: { line: { lineWidth: 1.5, marker: { enabled: false } } },
-    series: [
-      { name: 'Pacific countries mean', color: COLORS.primary, data: D.sstRegional.map((p) => p[1]), zIndex: 2 },
-      { name: activeCountry, color: COLORS.accent, data: D.sstByCountry[activeCountry].map((p) => p[1]), zIndex: 1 },
-    ],
-  });
-
-  // Exactly the two toggles the design draws: the regional mean and the
-  // Marshall Islands.
-  const toggleRow = document.getElementById('temp-toggles');
-  const shown = { mean: true, country: true };
-
-  function paintToggles() {
-    if (!toggleRow) return;
-    toggleRow.innerHTML = `
-      <button class="toggle" data-key="mean" data-on="${shown.mean}">
-        <span class="swatch"></span>Pacific countries mean
-      </button>
-      <button class="toggle" data-key="country" data-on="${shown.country}">
-        <span class="swatch"></span>${activeCountry}
-      </button>`;
-  }
-  paintToggles();
-
-  if (toggleRow) {
-    toggleRow.addEventListener('click', (e) => {
-      const b = e.target.closest('.toggle');
-      if (!b) return;
-      const key = b.dataset.key;
-      // Never let both series go dark — an empty axis is not a state worth reaching.
-      if (shown[key] && !shown[key === 'mean' ? 'country' : 'mean']) return;
-      shown[key] = !shown[key];
-      tempChart.series[key === 'mean' ? 0 : 1].setVisible(shown[key], true);
-      paintToggles();
-    });
-  }
-
   // ── 4. Sea level — regional mean only, with the rounding envelope drawn ────
   // The file is quantised to 0.1 m, so a country comparison is not available at
   // any zoom. The envelope makes the resolution visible instead of footnoting it.
