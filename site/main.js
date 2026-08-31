@@ -137,36 +137,6 @@ const setText = (sel, value) => {
     input.addEventListener('input', () => { stop(); renderYear(); });
   }
 
-  // ── 2. Warming stripes — every year of the regional record ────────────────
-  const stripeHost = document.getElementById('stripe-band');
-  if (stripeHost) {
-    const pts = D.sstRegional;
-    const vals = pts.map((p) => p[1]);
-    const min = Math.min(...vals), max = Math.max(...vals);
-    const colour = (v) => {
-      const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
-      return t < 0.5
-        ? `rgb(${Math.round(20 + t * 2 * 235)},${Math.round(60 + t * 2 * 195)},${Math.round(160 + t * 2 * 95)})`
-        : `rgb(255,${Math.round(255 - (t - 0.5) * 2 * 215)},${Math.round(255 - (t - 0.5) * 2 * 255)})`;
-    };
-    // The design marks a point partway along this band. Rather than an arbitrary
-    // year, the marker sits on the coldest year in the record — the other end of
-    // the range the stripes are scaled against.
-    const coldest = pts.reduce((a, b) => (b[1] < a[1] ? b : a))[0];
-    const coldPct = ((coldest - pts[0][0]) / (pts[pts.length - 1][0] - pts[0][0])) * 100;
-    stripeHost.innerHTML =
-      `<div class="stripes">
-        ${pts.map(([y, v]) =>
-          `<div title="${y}: ${v > 0 ? '+' : ''}${v.toFixed(2)}°C" style="background:${colour(v)}"></div>`
-        ).join('')}
-      </div>
-      <div class="band-axis">
-        <span>${pts[0][0]}</span>
-        <span class="mid" style="margin-left:calc(${coldPct.toFixed(1)}% - 5rem)">coldest ${coldest}</span>
-        <span>${pts[pts.length - 1][0]}</span>
-      </div>`;
-  }
-
   // ── 3. Temperature, regional mean + a selected country ────────────────────
   const tempYears = D.sstRegional.map((p) => p[0]);
   const countryList = Object.keys(D.sstByCountry).sort();
@@ -194,8 +164,8 @@ const setText = (sel, value) => {
     ],
   });
 
-  // Two toggles, as the design draws them: the regional mean and one country.
-  // The country pills below choose which country the second toggle refers to.
+  // Exactly the two toggles the design draws: the regional mean and the
+  // Marshall Islands.
   const toggleRow = document.getElementById('temp-toggles');
   const shown = { mean: true, country: true };
 
@@ -206,7 +176,7 @@ const setText = (sel, value) => {
         <span class="swatch"></span>Pacific countries mean
       </button>
       <button class="toggle" data-key="country" data-on="${shown.country}">
-        <span class="swatch"></span><span id="legend-country">${activeCountry}</span>
+        <span class="swatch"></span>${activeCountry}
       </button>`;
   }
   paintToggles();
@@ -220,23 +190,6 @@ const setText = (sel, value) => {
       if (shown[key] && !shown[key === 'mean' ? 'country' : 'mean']) return;
       shown[key] = !shown[key];
       tempChart.series[key === 'mean' ? 0 : 1].setVisible(shown[key], true);
-      paintToggles();
-    });
-  }
-
-  // Country pills choose which country the second series traces.
-  const pillRow = document.getElementById('temp-countries');
-  if (pillRow) {
-    pillRow.innerHTML = countryList
-      .map((c) => `<button class="pill-button${c === activeCountry ? ' active' : ''}" data-country="${c}">${c}</button>`)
-      .join('');
-    pillRow.addEventListener('click', (e) => {
-      const b = e.target.closest('.pill-button');
-      if (!b) return;
-      activeCountry = b.dataset.country;
-      pillRow.querySelectorAll('.pill-button').forEach((x) => x.classList.toggle('active', x === b));
-      tempChart.series[1].update({ name: activeCountry, data: D.sstByCountry[activeCountry].map((p) => p[1]) });
-      if (!shown.country) { shown.country = true; tempChart.series[1].setVisible(true, true); }
       paintToggles();
     });
   }
@@ -371,12 +324,37 @@ const setText = (sel, value) => {
     : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
   const signed = (v, d = 1) => `${v > 0 ? '+' : v < 0 ? '\u2212' : ''}${Math.abs(v).toFixed(d)}`;
 
+  // The copy spells small counts out, so the computed ones are spelled too —
+  // otherwise the figures read as numerals in prose written for words.
+  const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+    'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen',
+    'eighteen', 'nineteen'];
+  const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+  const words = (n) => {
+    if (n < 20) return ONES[n];
+    if (n > 99) return String(n);
+    const t = TENS[Math.floor(n / 10)], o = n % 10;
+    return o ? `${t}-${ONES[o]}` : t;
+  };
+
+  // Country names as the prose writes them, which is not always how the data
+  // file spells them.
+  const prose = (c) => ({ 'Wallis & Futuna': 'Wallis and Futuna', 'Solomon Islands': 'the Solomon Islands' })[c] || c;
+
+  // The copy states the unit once, on the first item, and leaves the rest bare.
+  const unitList = (rows, value, unit, join = 'and') => rows.map((r, i) => {
+    const v = `${value(r)}${i === 0 ? ` ${unit}` : ''}`;
+    return `${prose(r.country)} (${v})`;
+  }).reduce((acc, x, i, a) => i === 0 ? x
+    : i === a.length - 1 && join ? `${acc} ${join} ${x}` : `${acc}, ${x}`, '');
+
   // emissions
   const ghg = (c) => D.ghgLatest.find((g) => g.country === c);
   const ghgAt = (c) => { const g = ghg(c); return g ? g.val.toFixed(1) : null; };
-  setText('#fig-ghg-below4', D.ghgTrustedBelow4);
-  setText('#fig-ghg-trusted', D.ghgTrustedCount);
-  setText('#fig-ghg-suspect', D.ghgTotalCount - D.ghgTrustedCount);
+  setText('#fig-ghg-below4', cap(words(D.ghgTrustedBelow4)));
+  setText('#fig-ghg-trusted', words(D.ghgTrustedCount));
+  setText('#fig-ghg-suspect', cap(words(D.ghgTotalCount - D.ghgTrustedCount)));
   for (const [id, c] of [['kiribati', 'Kiribati'], ['solomon', 'Solomon Islands'],
     ['tuvalu', 'Tuvalu'], ['newcaledonia', 'New Caledonia']]) {
     const v = ghgAt(c);
@@ -393,12 +371,11 @@ const setText = (sel, value) => {
   // The flat series are the suspect ones other than Palau, whose problem is the
   // opposite: an impossible magnitude rather than an impossible constancy.
   const flat = D.ghgLatest.filter((g) => g.suspect && g.country !== 'Palau').map((g) => g.country);
-  setText('#fig-ghg-flat', fmtList(flat));
   const flatSpan = flat.length && D.ghgByYear[flat[0]] ? Object.keys(D.ghgByYear[flat[0]]).length : null;
-  if (flatSpan) setText('#fig-ghg-flatspan', flatSpan);
+  if (flatSpan) setText('#fig-ghg-flatspan', words(flatSpan));
 
   // sea-surface temperature
-  setText('#fig-sst-territories', D.sstTerritories);
+  setText('#fig-sst-territories', words(D.sstTerritories));
   setText('#fig-sst-span', `${D.sstYears[0]} to ${D.sstYears[1]}`);
   setText('#fig-sst-record', `${D.sstYears[1] - D.sstYears[0] + 1}-year`);
   setText('#fig-top10', fmtList(D.top10.map(String)));
@@ -408,17 +385,19 @@ const setText = (sel, value) => {
 
   // sea level
   setText('#fig-sea-trend', D.seaTrendMm.toFixed(1));
-  setText('#fig-sea-territories', D.seaTerritories);
+  setText('#fig-sea-territories', words(D.seaTerritories));
   setText('#fig-sea-span', `${D.seaYears[0]}\u2013${D.seaYears[1]}`);
 
   // rainfall
-  const withTrend = (r) => `${r.country} (${signed(r.trend, 1)} mm per decade)`;
-  setText('#fig-rain-total', D.rainTrends.length);
+
+  setText('#fig-rain-total', words(D.rainTrends.length));
   setText('#fig-rain-span', `${D.rainYears[0]}\u2013${D.rainYears[1]}`);
-  setText('#fig-rain-drying', D.rainDrying);
-  setText('#fig-rain-wetting', D.rainWetting);
-  setText('#fig-rain-driest', fmtList(D.rainTrends.slice(0, 4).map(withTrend)));
-  setText('#fig-rain-wettest', fmtList(D.rainTrends.slice(-4).reverse().map(withTrend)));
+  setText('#fig-rain-drying', words(D.rainDrying));
+  setText('#fig-rain-wetting', words(D.rainWetting));
+  setText('#fig-rain-driest',
+    unitList(D.rainTrends.slice(0, 4), (r) => signed(r.trend, 1), 'mm per decade'));
+  setText('#fig-rain-wettest',
+    unitList(D.rainTrends.slice(-4).reverse(), (r) => signed(r.trend, 1), 'mm per decade'));
   const rainSd = (c) => (D.rainTrends.find((r) => r.country === c) || {}).sd;
   if (rainSd('Nauru') != null) setText('#fig-rain-nauru-sd', rainSd('Nauru').toFixed(1));
   if (rainSd('New Caledonia') != null) setText('#fig-rain-nc-sd', rainSd('New Caledonia').toFixed(1));
@@ -438,10 +417,11 @@ const setText = (sel, value) => {
   }
   if (gapOf('Vanuatu')) setText('#fig-water-vu-gap', gapOf('Vanuatu').gap.toFixed(1));
   if (gapOf('Fiji')) setText('#fig-water-fj-gap', gapOf('Fiji').gap.toFixed(1));
-  const decliners = D.waterChange.filter((r) => r.change < 0);
-  setText('#fig-water-decliner-count', decliners.length);
+  // Most-negative first, as the copy lists them.
+  const decliners = D.waterChange.filter((r) => r.change < 0).sort((a, b) => a.change - b.change);
+  setText('#fig-water-decliner-count', cap(words(decliners.length)));
   setText('#fig-water-decliners',
-    fmtList(decliners.map((r) => `${r.country} (${signed(r.change, 1)} points)`)));
+    unitList(decliners, (r) => signed(r.change, 1), 'points', null));
 })();
 
 async function buildMap(D) {
