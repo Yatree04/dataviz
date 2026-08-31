@@ -78,31 +78,31 @@
         selected year. Double-click one to zoom in and open its record beside the map.</p>
       <nav class="map-breadcrumb" id="map-breadcrumb"></nav>
 
-      <div class="map-layout" id="map-layout">
-        <div class="map-pane">
-          <div class="chart" id="chart-sst-map" style="min-height:560px"></div>
-          <div class="map-ui">
-            <button class="play-btn" title="play">▶</button>
-            <div class="timeline-track">
-              <div class="timeline-fill"></div>
-              <div class="timeline-handle"></div>
-            </div>
-            <span class="map-ui-year">—</span>
-          </div>
-          <div class="map-foot">
-            <p class="map-hint">Hover a territory for its reading. Double-click to zoom in.</p>
-            <div class="map-key">
-              <span>−1.2</span><span class="key-ramp"></span><span>+1.2 °C</span>
-              <span class="key-nodata"></span><span>no data</span>
-            </div>
-          </div>
-        </div>
+      <div class="map-pane">
+        <div class="chart" id="chart-sst-map" style="min-height:560px"></div>
 
-        <aside id="territory-detail" class="detail-panel" hidden>
+        <aside id="territory-detail" class="detail-pop" hidden>
+          <button type="button" class="detail-close" id="detail-close" aria-label="Close">×</button>
           <p class="detail-title" id="detail-title"></p>
           <p class="detail-sub" id="detail-sub"></p>
           <div id="detail-chart"></div>
         </aside>
+
+        <div class="map-ui">
+          <button class="play-btn" title="play">▶</button>
+          <div class="timeline-track">
+            <div class="timeline-fill"></div>
+            <div class="timeline-handle"></div>
+          </div>
+          <span class="map-ui-year">—</span>
+        </div>
+        <div class="map-foot">
+          <p class="map-hint">Hover a territory for its reading. Double-click to zoom in.</p>
+          <div class="map-key">
+            <span>−1.2</span><span class="key-ramp"></span><span>+1.2 °C</span>
+            <span class="key-nodata"></span><span>no data</span>
+          </div>
+        </div>
       </div>
     </section>
 

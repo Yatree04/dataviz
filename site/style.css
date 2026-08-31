@@ -412,26 +412,48 @@ footer p:last-child { margin-bottom: 0; }
   background: linear-gradient(to right, #4A90E2, #F4F1EA, #D95F52);
 }
 
-/* Map and its detail panel sit side by side once there is room, and stack
-   below that. The panel is only in the flow when a territory is open. */
-.map-layout { display: flex; gap: 2rem; align-items: flex-start; }
-.map-pane { flex: 1 1 auto; min-width: 0; }
+/* The detail sits over the map's right-hand side rather than beside it, so
+   opening a territory does not resize the map underneath. */
+.map-pane { position: relative; }
 
-.detail-panel {
-  flex: 0 0 380px;
-  min-width: 0;
-  padding-left: 1.75rem;
-  border-left: 1px solid var(--border);
-  animation: panel-in 0.32s ease both;
+.detail-pop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 360px;
+  max-width: calc(100% - 2rem);
+  padding: 1rem 1.125rem 0.75rem;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  box-shadow: 0 2px 14px rgba(25, 25, 25, 0.06);
+  z-index: 3;
+  animation: pop-in 0.28s ease both;
 }
 
-@keyframes panel-in {
-  from { opacity: 0; transform: translateX(10px); }
+@keyframes pop-in {
+  from { opacity: 0; transform: translateX(8px); }
   to   { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .detail-panel { animation: none; }
+  .detail-pop { animation: none; }
 }
+
+.detail-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.625rem;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.detail-close:hover { color: var(--foreground); }
 
 .map-lede {
   font-family: var(--font-ui);
@@ -500,19 +522,15 @@ footer p:last-child { margin-bottom: 0; }
 .tt-val { font-weight: 500; color: var(--foreground); font-variant-numeric: tabular-nums; }
 .tt-ref { color: var(--muted-foreground); font-size: 11px; }
 
-@media (max-width: 900px) {
-  .map-layout { display: block; }
-  .detail-panel {
-    flex: none;
-    margin-top: 1.75rem;
-    padding: 1.5rem 0 0;
-    border-left: 0;
-    border-top: 1px solid var(--border);
-    animation-name: panel-in-stacked;
-  }
-  @keyframes panel-in-stacked {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: none; }
+/* Too narrow to float over the map without covering it, so it becomes a
+   block beneath instead. */
+@media (max-width: 760px) {
+  .detail-pop {
+    position: static;
+    width: auto;
+    max-width: none;
+    margin-top: 1.25rem;
+    box-shadow: none;
   }
 }
 

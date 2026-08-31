@@ -208,9 +208,18 @@ export async function buildSSTMap(D) {
     paintSelection();
   }
 
+  // setData updates existing points in place when the length matches, which
+  // merges rather than replaces: a colour set while dimmed survives a later
+  // datum that omits the key, so closing the popup left the map greyed out.
+  // Replace the points outright whenever the dim state changes, and keep the
+  // cheaper in-place update for plain year scrubbing.
+  let lastDimState = null;
   function paintSelection() {
-    chart.get('sst-area').setData(choropleth(year), false);
-    chart.get('sst-point').setData(markers(year), false);
+    const dimState = `${drilled}|${selected}`;
+    const keepPoints = dimState === lastDimState;
+    lastDimState = dimState;
+    chart.get('sst-area').setData(choropleth(year), false, false, keepPoints);
+    chart.get('sst-point').setData(markers(year), false, false, keepPoints);
     const parts = chart.get('sel-parts');
     if (parts) {
       // At territory zoom an atoll state's land is sub-pixel, so the selection
@@ -270,6 +279,11 @@ export async function buildSSTMap(D) {
       if (e.target.closest('[data-up]')) drillUp();
     });
   }
+  const closeBtn = document.getElementById('detail-close');
+  if (closeBtn) closeBtn.addEventListener('click', drillUp);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drilled) drillUp();
+  });
 
   // ── the territory's own record, over time ─────────────────────────────────
   // Built once and re-fed per country, rather than rebuilt on every drilldown:
@@ -376,6 +390,9 @@ export async function buildSSTMap(D) {
       width: 1, dashStyle: 'Dash', zIndex: 2,
     });
     c.redraw();
+    // The popup is absolutely positioned and starts hidden; a chart built into
+    // a container with no layout measures zero, so size it once it is on screen.
+    requestAnimationFrame(() => c.reflow());
   }
 
   const cursorPoint = (iso) => {
