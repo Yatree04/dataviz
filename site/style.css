@@ -1,0 +1,430 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+:root {
+    --bg-color: #F8F9FA;
+    --text-primary: #191919;
+    --text-muted: #666666;
+    --text-light: #999999;
+    --accent-red: #D95F52;
+    --accent-blue: #4A90E2;
+    --accent-gold: #F0AD4E;
+    --map-bg: #F4F1EA;
+
+    --font-heading: 'Lora', serif;
+    --font-body: 'Inter', sans-serif;
+
+    --text-width: 680px;
+    --chart-width: 800px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 18px;
+    line-height: 1.6;
+    padding: 4rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Typography base */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+p {
+    margin-bottom: 1.5rem;
+}
+
+.kicker {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+}
+
+.main-title {
+    font-size: 64px;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+    letter-spacing: -0.02em;
+}
+
+.text-block {
+    width: 100%;
+    max-width: var(--text-width);
+    margin: 0 auto 3rem auto;
+}
+
+.chart-block {
+    width: 100%;
+    max-width: var(--chart-width);
+    margin: 4rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Flowchart */
+.flowchart {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: var(--chart-width);
+    margin: 3rem auto;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.flowchart-item {
+    text-align: center;
+}
+
+.flowchart-arrow {
+    flex-grow: 1;
+    height: 1px;
+    background-color: #ccc;
+    margin: 0 1rem;
+    position: relative;
+}
+
+.flowchart-arrow::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -4px;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid #ccc;
+}
+
+/* Charts Generic */
+.chart-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2rem;
+    align-self: flex-start;
+}
+
+.chart-caption {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 1rem;
+    align-self: flex-start;
+    font-style: italic;
+}
+
+.chart-container-placeholder {
+    width: 100%;
+    min-height: 400px;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Specific chart styling overrides or helpers */
+.map-ui {
+    width: 100%;
+    background-color: var(--map-bg);
+    border-radius: 4px;
+    aspect-ratio: 16/9;
+    position: relative;
+    overflow: hidden;
+}
+
+.map-ui-buttons {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.map-ui-button {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.map-ui-button.dark {
+    background-color: #1a1a1a;
+    color: white;
+}
+
+.map-ui-button.light {
+    background-color: #e8e3d8;
+    color: #666;
+}
+
+.map-ui-year {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    font-family: var(--font-heading);
+    font-size: 80px;
+    font-weight: 700;
+    line-height: 1;
+    color: #333;
+}
+
+.map-ui-timeline {
+    position: absolute;
+    bottom: 1rem;
+    left: 2rem;
+    right: 12rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.play-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.timeline-track {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #ccc;
+    position: relative;
+}
+
+.timeline-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--accent-gold);
+}
+
+.timeline-handle {
+    position: absolute;
+    right: 0;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-gold);
+    background-color: #fff;
+}
+
+.timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    position: absolute;
+    top: 10px;
+    font-size: 10px;
+    color: #999;
+}
+
+/* Button Row for countries */
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.pill-button {
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 0.3rem 0.8rem;
+    background-color: #e5e7eb;
+    color: #4b5563;
+    border: none;
+    border-radius: 99px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pill-button:hover {
+    background-color: #d1d5db;
+}
+
+/* Dumbbell chart layout helpers */
+.dumbbell-chart-wrapper {
+    width: 100%;
+    margin-bottom: 3rem;
+}
+
+.dumbbell-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 12px;
+}
+
+.dumbbell-label {
+    width: 120px;
+    text-align: right;
+    padding-right: 1rem;
+    color: var(--text-muted);
+}
+
+.dumbbell-track {
+    flex-grow: 1;
+    position: relative;
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 0 1rem;
+}
+
+.dumbbell-line {
+    position: absolute;
+    height: 1px;
+    top: 0;
+    background-color: #9ca3af;
+}
+
+.dumbbell-dot {
+    position: absolute;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.dot-orange {
+    background-color: var(--accent-gold);
+}
+
+.dot-blue {
+    background-color: var(--accent-blue);
+}
+
+.dot-red {
+    background-color: var(--accent-red);
+}
+
+.dot-grey {
+    background-color: #9ca3af;
+}
+
+.dumbbell-value {
+    width: 40px;
+    text-align: right;
+    font-weight: 500;
+}
+
+.value-red {
+    color: var(--accent-red);
+}
+
+.value-blue {
+    color: var(--accent-blue);
+}
+
+.legend-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.legend-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+@media (max-width: 768px) {
+    .flowchart {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .flowchart-arrow {
+        width: 1px;
+        height: 20px;
+        margin: 0;
+    }
+
+    .flowchart-arrow::after {
+        top: auto;
+        bottom: -4px;
+        left: -4px;
+        border-top: 6px solid #ccc;
+        border-bottom: 4px solid transparent;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+    }
+
+    .main-title {
+        font-size: 40px;
+    }
+
+    .map-ui-year {
+        font-size: 48px;
+    }
+}
+/* ── states added when the charts were wired to real data ────────────────── */
+
+/* Active country in the temperature selector */
+.pill-button.active {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: #fff;
+}
+
+/* Play button while the map is animating through years */
+.map-ui .play-btn.playing svg path {
+    d: path("M1 0H3V10H1V0ZM5 0H7V10H5V0Z");
+}
+
+/* The country selector can run to 21 entries, so let it wrap tidily */
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* Dumbbell rows are generated, so give the container the same rhythm the
+   hand-written rows had */
+#dumbbell-gap .dumbbell-row:last-child,
+#dumbbell-change .dumbbell-row:last-child {
+    margin-bottom: 0;
+}

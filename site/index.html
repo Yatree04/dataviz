@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pacific Cascade</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Highcharts core and common modules -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/map.js"></script>
+</head>
+
+<body>
+
+    <div class="text-block">
+        <p class="kicker">What a warming ocean does on its way to land.</p>
+        <h1 class="main-title">The Pacific Cascade</h1>
+        <p>What a warming ocean does on its way to land. Greenhouse gas becomes heat. Heat becomes a rising sea and a
+            rearranged rainy season. Those become a coastline that no longer sits where it did. Each of those steps has
+            been measured. One has not and it is the step that decides how much of the ocean's energy reaches a doorway.
+        </p>
+    </div>
+
+    <div class="flowchart">
+        <div class="flowchart-item">Greenhouse gas</div>
+        <div class="flowchart-arrow"></div>
+        <div class="flowchart-item">Heat</div>
+        <div class="flowchart-arrow"></div>
+        <div class="flowchart-item">Rising Sea and<br>Rearranged Rains</div>
+        <div class="flowchart-arrow"></div>
+        <div class="flowchart-item">Shifting Coastlines</div>
+    </div>
+
+    <div class="text-block">
+        <p><span id="fig-ghg-below4">…</span> of the <span id="fig-ghg-trusted">…</span> usable Pacific series in the SPC
+            emissions file (of <span id="fig-ghg-total">…</span> in total) sit below 4 tonnes of CO₂-equivalent per
+            person per year. Kiribati is at 0.9, the Solomon Islands at 0.8, Tuvalu at 0.4. New Caledonia, at 18.4, is
+            an outlier built on nickel smelting rather than on how anyone lives.</p>
+        <p>Six series in the same file are not usable. Palau is recorded at 190.6 tonnes per person in 1970 and 86.7 in
+            2024 — four times higher than any national figure recorded anywhere. Nauru, the Marshall Islands, Guam,
+            American Samoa and the Northern Marianas appear as flat lines at 0.1–0.2 tonnes for fifty-five consecutive
+            years, which is not a measurement either. Those six are drawn muted and excluded from the ranking.</p>
+    </div>
+
+    <div class="chart-block">
+        <div class="chart-title" style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+            <span>TCO₂E PER CAPITA (1970-2024) · SPC PACIFIC DATA HUB</span>
+            <div class="play-controls" style="display:flex; gap:10px; align-items:center;">
+                <button id="play-pause-button" title="play"
+                    style="cursor:pointer; background:none; border:none; font-size:18px;">▶</button>
+                <input id="play-range" type="range" value="1970" min="1970" max="2024" style="width:150px;" />
+            </div>
+        </div>
+        <div id="chart-emissions" class="chart-container-placeholder"></div>
+        <div class="chart-caption">Palau and New Cal. are industrial outliers. Colour: red = highest, blue = lowest.
+        </div>
+    </div>
+
+    <div class="text-block">
+        <p>The SPC sea-surface temperature file runs <span id="fig-sst-span">…</span> across
+            <span id="fig-sst-territories">…</span> countries and territories. Averaged across all of them, the ten
+            warmest years in that <span id="fig-sst-record">…</span> record are <span id="fig-top10">…</span>.
+            No twentieth-century year appears in the list.</p>
+        <p>Across 1995–2024 the regional mean sits <span id="fig-sst-recent">…</span> °C above the 1961–1990 climatological
+            baseline that the anomalies are measured against.</p>
+        <p>The sawtooth riding on the trend is ENSO. El Niño years lift regional sea-surface temperature by several
+            tenths of a degree and La Niña years pull it back; 2016 and 2024 are both El Niño peaks. Any Pacific series
+            read without that band shading looks noisier than it is.</p>
+        <p>The ocean absorbs roughly 91% of the excess energy in the climate system (IPCC AR6 WGI Ch. 9). From here the
+            cascade splits in two.</p>
+    </div>
+
+    <div class="chart-block">
+        <div id="chart-us-hex" class="chart-container-placeholder" style="max-width: 600px;"></div>
+        <div class="chart-caption" style="align-self: center;">Temperature anomalies density till now</div>
+    </div>
+
+    <div class="text-block text-center" style="text-align: center; margin-top: -2rem;">
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 0.5rem;">To refer to every countries record
+            over the years, refer te graph below since<br>they tell the most obvious stories</p>
+        <div class="button-row">
+            <button class="pill-button">American Samoa</button>
+            <button class="pill-button">Cook Islands</button>
+            <button class="pill-button">Fiji</button>
+            <button class="pill-button">French Polynesia</button>
+            <button class="pill-button">Guam</button>
+            <button class="pill-button">Kiribati</button>
+        </div>
+    </div>
+
+    <div class="chart-block">
+        <div id="chart-sea-level-lines" class="chart-container-placeholder"></div>
+        <div class="legend-row" style="margin-top: 1rem; width: 100%; justify-content: center;">
+            <div class="legend-item">
+                <div class="legend-dot dot-orange"></div> Pacific countries mean
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot dot-grey"></div> <span id="legend-country">Marshall Islands</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-block">
+        <h2>A regional signal built from unusable national ones</h2>
+        <p>The SPC sea-level file reports at 0.1-metre resolution. Every observation in it is one of five values: -0.2,
+            -0.1, 0.0, 0.1 or 0.2 metres. At that precision no single country's series means anything — Kiribati reads
+            0.0 for its first three years because the true value rounded to zero, not because the sea stood still.
+            Averaged across all <span id="fig-sea-territories">…</span> territories, the quantisation error cancels. The
+            regional mean rises at <span id="fig-sea-trend">…</span> mm per year across <span id="fig-sea-span">…</span>, within the range satellite altimetry independently reports for the tropical
+            Pacific. The dataset cannot answer which island is worst affected. It can answer whether the Pacific is
+            rising, and it says yes.</p>
+    </div>
+
+    <div class="chart-block">
+        <div id="chart-sea-level-step" class="chart-container-placeholder"></div>
+        <div class="chart-caption">SEA_LVL - SPC Pacific Data Hub - Regional mean - quantised 0.1m - 1993-2023.</div>
+    </div>
+
+    <div class="text-block">
+        <h2>Where the rain stopped arriving, the water did not</h2>
+        <p>The SDG 6.1.1 series tracks the share of each population using a safely managed drinking-water service.
+            Kiribati — one of the four fastest-drying territories in the rainfall data — moved from 60.9% in 2000 to
+            75.7% in 2022. A quarter of the country still lacks it, and the national figure conceals the more useful
+            one: Kiribati's urban population runs 28.3 percentage points ahead of its rural population.</p>
+        <p><span id="fig-water-widest">…</span> reports the widest gap in the region at
+            <span id="fig-water-widest-gap">…</span> points. <span id="fig-water-decliner-count">…</span> territories
+            moved backwards between 2000 and 2022: <span id="fig-water-decliners">…</span>.</p>
+        <p>Rainfall is the recharge term for an atoll's freshwater lens. In several of these countries it is the only
+            one. That is the mechanism, and it is why this link is drawn dashed: the rainfall decline is measured and
+            the water-access shortfall is measured, but nothing in either dataset attributes one to the other.</p>
+    </div>
+
+    <div class="text-block">
+        <h2>The islands with no rivers are the ones drying out</h2>
+        <p>Rainfall is not moving in one direction across the Pacific. Fitting a linear trend to each of the
+            <span id="fig-rain-total">…</span> national series in RAIN_ANOM (<span id="fig-rain-span">…</span>) splits
+            the region: <span id="fig-rain-drying">…</span> drying, <span id="fig-rain-wetting">…</span> wetting.</p>
+        <p>The split is not random. The fastest-drying territories are <span id="fig-rain-driest">…</span> mm per
+            decade. Most are low atoll states with no rivers, no lakes and no highland catchment, holding fresh water
+            in a thin lens floating on seawater beneath the sand, recharged by rain and by nothing else. At the other
+            end, <span id="fig-rain-wettest">…</span> are getting wetter. Neither direction is neutral: catchment
+            sizing and cropping calendars were built for the distribution that used to hold.</p>
+    </div>
+
+    <div class="chart-block">
+        <div class="chart-title">RAINFALL TREND, MM PER DECADE · RAIN_ANOM · RED = DRYING · BLUE = WETTING</div>
+        <div id="chart-rainfall" class="chart-container-placeholder"></div>
+        <div class="chart-caption">Linear trend fitted to the annual anomaly, <span id="fig-rain-span">…</span>, per territory. ◆ marks atoll
+            states, which hold fresh water in a rain-fed lens. RAIN_ANOM · SPC Pacific Data Hub.
+        </div>
+    </div>
+
+    <div class="chart-block">
+        <div class="chart-title">URBAN VS RURAL SAFELY MANAGED WATER ACCESS · SORTED BY GAP</div>
+
+        <div class="dumbbell-chart-wrapper">
+            <div class="legend-row">
+                <div class="legend-item"><div class="legend-dot dot-orange"></div> Rural</div>
+                <div class="legend-item"><div class="legend-dot dot-blue"></div> Urban</div>
+            </div>
+            <div id="dumbbell-gap"></div>
+        </div>
+        <div class="chart-caption" style="margin-top: -1.5rem; margin-bottom: 3rem;">SH_H2Q_SAFE - SDG 6.1.1 -
+            WHO/UNICEF JMP modelled estimates - most recent year.</div>
+
+        <div class="chart-title" style="margin-top: 1rem;">NATIONAL COVERAGE 2000 -> 2022</div>
+
+        <div class="dumbbell-chart-wrapper">
+            <div id="dumbbell-change"></div>
+        </div>
+        <div class="chart-caption" style="margin-top: -1.5rem;">SH_H2O_SAFE · SDG 6.1.1 · WHO/UNICEF JMP modelled
+            estimates, shown as endpoints only — the estimation method does not support an annual trend line.</div>
+    </div>
+
+    <div class="text-block">
+        <p>Ten million transects, no model<br>
+            Digital Earth Pacific's rates of change layer fits a trend to each shoreline...</p>
+        <p>...The Pacific pattern is not uniform retreat, and the literature agrees: Duvat's 2019 synthesis of 709
+            islands and Kench's 2018 work on Tuvalu both find most atoll islands stable or growing in area as
+            reef-derived sediment redistributes. Land area and habitability are different things. An island can gain
+            area on its ocean side and lose the village on its lagoon side in the same decade.<br>
+            This layer measures the outcome. It does not apportion it between the links above.</p>
+    </div>
+
+    <div class="chart-block">
+        <div class="map-ui">
+            <div id="map-canvas" style="position:absolute;inset:0"></div>
+
+            <div class="map-ui-buttons">
+                <button class="map-ui-button dark">Temperature by year, 1985-2025</button>
+                <button class="map-ui-button light">Cyclone Winston, 2016</button>
+            </div>
+
+            <div class="map-ui-year">2025</div>
+
+            <div class="map-ui-timeline">
+                <div class="play-btn">
+                    <svg width="8" height="10" viewBox="0 0 8 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5L0.5 9.33013L0.5 0.669873L8 5Z" fill="#333" />
+                    </svg>
+                </div>
+                <div class="timeline-track">
+                    <div class="timeline-fill"></div>
+                    <div class="timeline-handle"></div>
+                </div>
+                <div class="timeline-labels">
+                    <span>1985</span>
+                    <span>1990</span>
+                    <span>1995</span>
+                    <span>2000</span>
+                    <span>2005</span>
+                    <span>2010</span>
+                    <span>2015</span>
+                    <span>2020</span>
+                    <span style="font-weight:bold; color:#000;">2025</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-block" style="margin-bottom: 8rem;">
+        <p>The cascade is measured everywhere except where it matters most<br>
+            The heat is in the record: the ten warmest years, all within this century.<br>
+            The sea anomalies are in the record, marking a Pacific that is becoming increasingly unstable.<br>
+            The rise is in the record, once the noise is averaged away — 4.3 millimetres a year.<br>
+            The rainfall shift is in the record, uneven and sharpest where freshwater storage is already limited.<br>
+            The shoreline change is in the record, traced across millions of transects.<br>
+            And the gas is in the record — accumulating upstream of every one of these changes.<br>
+            Between the gas and the shoreline sits a chain of measurable shifts: gas &rightarrow; heat &rightarrow; sea
+            anomalies &rightarrow; sea-level rise &rightarrow; rainfall &rightarrow; shoreline.<br>
+            Every solid link in this cascade was built by someone deciding the quantity was worth counting.<br>
+            The question is what happens between the measurements — and what remains invisible because we have not yet
+            decided how to measure it.</p>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
