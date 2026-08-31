@@ -1,430 +1,426 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+/* site/style.css — The Pacific Cascade
+   Type, colour and spacing follow the supplied front-end design: Libre
+   Baskerville for the title, Outfit 300 for body prose, Inter for anything
+   that labels a chart. */
 
 :root {
-    --bg-color: #F8F9FA;
-    --text-primary: #191919;
-    --text-muted: #666666;
-    --text-light: #999999;
-    --accent-red: #D95F52;
-    --accent-blue: #4A90E2;
-    --accent-gold: #F0AD4E;
-    --map-bg: #F4F1EA;
-
-    --font-heading: 'Lora', serif;
-    --font-body: 'Inter', sans-serif;
-
-    --text-width: 680px;
-    --chart-width: 800px;
+  --background: #ffffff;
+  --foreground: #020817;
+  --muted-foreground: #9ca3af;
+  --primary: #2a78d6;
+  --accent: #e8833a;
+  --danger: #c1362f;
+  --border: #e2e8f0;
+  --text-body: #3a2d2d;
+  --text-secondary: #494949;
+  --column: 600px;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-title: 'Libre Baskerville', Georgia, serif;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  color-scheme: light;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
 
 body {
-    background-color: var(--bg-color);
-    color: var(--text-primary);
-    font-family: var(--font-body);
-    font-size: 18px;
-    line-height: 1.6;
-    padding: 4rem 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Typography base */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-family: var(--font-heading);
-    color: var(--text-primary);
-    margin-bottom: 1rem;
-    font-weight: 700;
-}
+/* Highcharts 13 injects `color-scheme: light dark` on every chart container,
+   which flips the charts to a dark palette regardless of the page setting.
+   The library honours this ancestor class as the escape hatch. */
+.highcharts-light .highcharts-container { color-scheme: light !important; }
 
-p {
-    margin-bottom: 1.5rem;
-}
+.column { max-width: var(--column); margin: 0 auto; }
+
+/* ── hero ────────────────────────────────────────────────────────────────── */
+
+.hero { padding: 7rem 2rem 3rem; }
 
 .kicker {
-    font-family: var(--font-body);
-    font-size: 16px;
-    color: var(--text-muted);
-    margin-bottom: 0.5rem;
-    font-weight: 400;
+  font-size: 1.125rem;
+  line-height: 1.625;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
 }
 
-.main-title {
-    font-size: 64px;
-    line-height: 1.1;
-    margin-bottom: 2rem;
-    letter-spacing: -0.02em;
+h1 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 3rem;
+  line-height: 1.1;
+  letter-spacing: -1.8px;
+  color: var(--foreground);
+  margin: 0 0 2rem;
 }
 
-.text-block {
-    width: 100%;
-    max-width: var(--text-width);
-    margin: 0 auto 3rem auto;
+/* ── cascade flow ────────────────────────────────────────────────────────── */
+
+.cascade { padding: 2rem 0; overflow-x: auto; }
+
+.cascade-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 2rem;
+  min-width: 600px;
+  font-size: 15px;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
-.chart-block {
-    width: 100%;
-    max-width: var(--chart-width);
-    margin: 4rem auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.cascade-wrap { max-width: 138px; white-space: normal; text-align: center; }
+
+.arrow { width: 31px; height: 6px; flex-shrink: 0; }
+
+/* ── prose ───────────────────────────────────────────────────────────────── */
+
+main { padding: 0 2rem 8rem; max-width: 1167px; margin: 0 auto; }
+
+.s-lg { padding-top: 5rem; }
+.s-md { padding-top: 3rem; }
+
+.body {
+  font-size: 1.125rem;
+  line-height: 25px;
+  color: var(--text-body);
+  margin: 0 0 1.5rem;
+}
+.body:last-child { margin-bottom: 0; }
+.body.strong { font-weight: 500; color: var(--foreground); }
+
+.body code, footer code, .caption code, .pending-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: #f1f0ee;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
 }
 
-/* Flowchart */
-.flowchart {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: var(--chart-width);
-    margin: 3rem auto;
-    font-size: 14px;
-    color: var(--text-muted);
+/* Figures written into the prose by main.js. Until the data lands they read
+   as an em dash, so a failed load looks broken rather than plausible. */
+.body span[id^='fig-'] {
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+  font-weight: 400;
 }
 
-.flowchart-item {
-    text-align: center;
+.label {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  margin: 0 0 1rem;
 }
 
-.flowchart-arrow {
-    flex-grow: 1;
-    height: 1px;
-    background-color: #ccc;
-    margin: 0 1rem;
-    position: relative;
+.caption {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+  margin: 0.875rem 0 0;
 }
 
-.flowchart-arrow::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: -4px;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    border-left: 6px solid #ccc;
+.band-title {
+  font-size: 11px;
+  text-align: center;
+  color: #000;
+  margin: 0 0 0.75rem;
 }
 
-/* Charts Generic */
-.chart-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 2rem;
-    align-self: flex-start;
+/* ── charts ──────────────────────────────────────────────────────────────── */
+
+.chart { width: 100%; }
+
+.chart.pending {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  background: #fbfaf9;
 }
 
-.chart-caption {
-    font-size: 12px;
-    color: var(--text-light);
-    margin-top: 1rem;
-    align-self: flex-start;
-    font-style: italic;
+.pending-title {
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0 0 0.5rem;
 }
 
-.chart-container-placeholder {
-    width: 100%;
-    min-height: 400px;
-    background-color: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+.pending-body {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+  margin: 0;
 }
 
-/* Specific chart styling overrides or helpers */
-.map-ui {
-    width: 100%;
-    background-color: var(--map-bg);
-    border-radius: 4px;
-    aspect-ratio: 16/9;
-    position: relative;
-    overflow: hidden;
+/* warming stripes band */
+
+#stripe-band .stripes {
+  display: flex;
+  gap: 1px;
+  height: 44px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+#stripe-band .stripes > div { flex: 1 1 0; }
+
+#stripe-band .band-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #000;
+}
+#stripe-band .band-axis .mid { color: var(--muted-foreground); }
+
+/* ── scrubbers ───────────────────────────────────────────────────────────── */
+
+.scrubber, .map-ui {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-top: 1rem;
 }
 
-.map-ui-buttons {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    display: flex;
-    gap: 0.5rem;
+.scrubber button, .map-ui .play-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.scrubber button:hover, .map-ui .play-btn:hover {
+  background: #eff6ff;
+  border-color: var(--primary);
+}
+.map-ui .play-btn.playing { background: #eff6ff; border-color: var(--primary); }
+
+.scrubber input[type='range'] {
+  flex: 1;
+  accent-color: var(--primary);
 }
 
-.map-ui-button {
-    font-size: 12px;
-    font-weight: 500;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    border: none;
-    cursor: pointer;
-}
-
-.map-ui-button.dark {
-    background-color: #1a1a1a;
-    color: white;
-}
-
-.map-ui-button.light {
-    background-color: #e8e3d8;
-    color: #666;
-}
-
-.map-ui-year {
-    position: absolute;
-    bottom: 2rem;
-    right: 2rem;
-    font-family: var(--font-heading);
-    font-size: 80px;
-    font-weight: 700;
-    line-height: 1;
-    color: #333;
-}
-
-.map-ui-timeline {
-    position: absolute;
-    bottom: 1rem;
-    left: 2rem;
-    right: 12rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.play-btn {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: #ccc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+.scrubber-year, .map-ui-year {
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  min-width: 3.25rem;
+  text-align: right;
 }
 
 .timeline-track {
-    flex-grow: 1;
-    height: 2px;
-    background-color: #ccc;
-    position: relative;
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: #ececec;
+  cursor: pointer;
 }
-
 .timeline-fill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    background-color: var(--accent-gold);
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--primary);
 }
-
 .timeline-handle {
-    position: absolute;
-    right: 0;
-    top: -4px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 2px solid var(--accent-gold);
-    background-color: #fff;
+  position: absolute;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  margin-left: -6.5px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--primary);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
-.timeline-labels {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    position: absolute;
-    top: 10px;
-    font-size: 10px;
-    color: #999;
+/* ── toggles and country pills ───────────────────────────────────────────── */
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
 }
 
-/* Button Row for countries */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #6b7280;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.toggle .swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #d9d9d9;
+  flex-shrink: 0;
+}
+.toggle[data-on='true'] { font-weight: 500; }
+.toggle[data-on='true'][data-key='mean'] {
+  border-color: var(--primary); background: #eff6ff; color: var(--primary);
+}
+.toggle[data-on='true'][data-key='mean'] .swatch { background: var(--primary); }
+.toggle[data-on='true'][data-key='country'] {
+  border-color: var(--accent); background: #fff7ed; color: var(--accent);
+}
+.toggle[data-on='true'][data-key='country'] .swatch { background: var(--accent); }
+
 .button-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: center;
-    margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
 }
 
 .pill-button {
-    font-family: var(--font-body);
-    font-size: 12px;
-    padding: 0.3rem 0.8rem;
-    background-color: #e5e7eb;
-    color: #4b5563;
-    border: none;
-    border-radius: 99px;
-    cursor: pointer;
-    transition: background-color 0.2s;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #6b7280;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pill-button:hover { border-color: #cbd5e1; color: var(--foreground); }
+.pill-button.active {
+  border-color: var(--accent);
+  background: #fff7ed;
+  color: var(--accent);
+  font-weight: 500;
 }
 
-.pill-button:hover {
-    background-color: #d1d5db;
-}
-
-/* Dumbbell chart layout helpers */
-.dumbbell-chart-wrapper {
-    width: 100%;
-    margin-bottom: 3rem;
-}
+/* ── dumbbells ───────────────────────────────────────────────────────────── */
 
 .dumbbell-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3125rem 0;
 }
 
 .dumbbell-label {
-    width: 120px;
-    text-align: right;
-    padding-right: 1rem;
-    color: var(--text-muted);
+  flex: 0 0 8.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dumbbell-track {
-    flex-grow: 1;
-    position: relative;
-    height: 1px;
-    background-color: #e5e7eb;
-    margin: 0 1rem;
+  position: relative;
+  flex: 1;
+  height: 12px;
+  border-bottom: 1px solid #f4f3f1;
 }
 
 .dumbbell-line {
-    position: absolute;
-    height: 1px;
-    top: 0;
-    background-color: #9ca3af;
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: #e5e3e0;
+  border-radius: 999px;
 }
 
 .dumbbell-dot {
-    position: absolute;
-    top: -3px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 999px;
 }
-
-.dot-orange {
-    background-color: var(--accent-gold);
-}
-
-.dot-blue {
-    background-color: var(--accent-blue);
-}
-
-.dot-red {
-    background-color: var(--accent-red);
-}
-
-.dot-grey {
-    background-color: #9ca3af;
-}
+.dot-blue { background: var(--primary); }
+.dot-orange { background: var(--accent); }
+.dot-red { background: var(--danger); }
+.dot-grey { background: #c4c1bd; }
 
 .dumbbell-value {
-    width: 40px;
-    text-align: right;
-    font-weight: 500;
+  flex: 0 0 3.25rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
+.value-red { color: var(--danger); font-weight: 500; }
+.value-blue { color: var(--primary); }
+.text-muted { color: var(--muted-foreground); }
 
-.value-red {
-    color: var(--accent-red);
+.key {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin: 0 0.25rem 0 0.75rem;
+  vertical-align: baseline;
 }
+.key:first-child { margin-left: 0; }
+.key-blue { background: var(--primary); }
+.key-orange { background: var(--accent); }
 
-.value-blue {
-    color: var(--accent-blue);
+/* ── footer ──────────────────────────────────────────────────────────────── */
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem;
 }
-
-.legend-row {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    font-size: 12px;
-    color: var(--text-muted);
+footer p {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+  margin: 0 0 0.5rem;
 }
+footer p:last-child { margin-bottom: 0; }
 
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
+/* ── narrow screens ──────────────────────────────────────────────────────── */
 
-.legend-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-}
-
-@media (max-width: 768px) {
-    .flowchart {
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .flowchart-arrow {
-        width: 1px;
-        height: 20px;
-        margin: 0;
-    }
-
-    .flowchart-arrow::after {
-        top: auto;
-        bottom: -4px;
-        left: -4px;
-        border-top: 6px solid #ccc;
-        border-bottom: 4px solid transparent;
-        border-left: 4px solid transparent;
-        border-right: 4px solid transparent;
-    }
-
-    .main-title {
-        font-size: 40px;
-    }
-
-    .map-ui-year {
-        font-size: 48px;
-    }
-}
-/* ── states added when the charts were wired to real data ────────────────── */
-
-/* Active country in the temperature selector */
-.pill-button.active {
-    background: var(--text-primary);
-    border-color: var(--text-primary);
-    color: #fff;
-}
-
-/* Play button while the map is animating through years */
-.map-ui .play-btn.playing svg path {
-    d: path("M1 0H3V10H1V0ZM5 0H7V10H5V0Z");
-}
-
-/* The country selector can run to 21 entries, so let it wrap tidily */
-.button-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-}
-
-/* Dumbbell rows are generated, so give the container the same rhythm the
-   hand-written rows had */
-#dumbbell-gap .dumbbell-row:last-child,
-#dumbbell-change .dumbbell-row:last-child {
-    margin-bottom: 0;
+@media (max-width: 680px) {
+  .hero { padding: 4rem 1.25rem 2rem; }
+  main { padding: 0 1.25rem 4rem; }
+  h1 { font-size: 2.125rem; letter-spacing: -1px; }
+  .s-lg { padding-top: 3.5rem; }
+  .s-md { padding-top: 2rem; }
+  .dumbbell-label { flex-basis: 6rem; font-size: 0.6875rem; }
+  footer { padding: 1.5rem 1.25rem; }
 }

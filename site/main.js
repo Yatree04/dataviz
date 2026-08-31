@@ -40,7 +40,7 @@ const setText = (sel, value) => {
     D = await loadData();
   } catch (e) {
     console.error('Data load failed:', e);
-    document.querySelectorAll('.chart-container-placeholder').forEach((el) => {
+    document.querySelectorAll('.chart').forEach((el) => {
       el.innerHTML = '<p style="padding:2rem;color:#999;font-size:14px">'
         + 'Could not load the source CSVs. Serve this over HTTP, not file://.</p>';
     });
@@ -114,6 +114,7 @@ const setText = (sel, value) => {
       text: `<span style="font-size:64px;font-weight:700;color:#ececec;font-family:Lora,serif">${y}</span>`,
     });
     racing.series[0].update({ name: String(y), data: emissionsFor(y) }, true);
+    setText('#emissions-year', y);
   }
 
   function stop() {
@@ -137,9 +138,9 @@ const setText = (sel, value) => {
   }
 
   // ── 2. Warming stripes — every year of the regional record ────────────────
-  const stripeHost = document.getElementById('chart-us-hex');
+  const stripeHost = document.getElementById('stripe-band');
   if (stripeHost) {
-    const pts = D.sstRegional.filter(([y]) => y >= 1900);
+    const pts = D.sstRegional;
     const vals = pts.map((p) => p[1]);
     const min = Math.min(...vals), max = Math.max(...vals);
     const colour = (v) => {
@@ -148,14 +149,21 @@ const setText = (sel, value) => {
         ? `rgb(${Math.round(20 + t * 2 * 235)},${Math.round(60 + t * 2 * 195)},${Math.round(160 + t * 2 * 95)})`
         : `rgb(255,${Math.round(255 - (t - 0.5) * 2 * 215)},${Math.round(255 - (t - 0.5) * 2 * 255)})`;
     };
+    // The design marks a point partway along this band. Rather than an arbitrary
+    // year, the marker sits on the coldest year in the record — the other end of
+    // the range the stripes are scaled against.
+    const coldest = pts.reduce((a, b) => (b[1] < a[1] ? b : a))[0];
+    const coldPct = ((coldest - pts[0][0]) / (pts[pts.length - 1][0] - pts[0][0])) * 100;
     stripeHost.innerHTML =
-      `<div style="display:flex;gap:1px;height:150px;border-radius:3px;overflow:hidden">
+      `<div class="stripes">
         ${pts.map(([y, v]) =>
-          `<div title="${y}: ${v > 0 ? '+' : ''}${v.toFixed(2)}°C" style="flex:1;background:${colour(v)}"></div>`
+          `<div title="${y}: ${v > 0 ? '+' : ''}${v.toFixed(2)}°C" style="background:${colour(v)}"></div>`
         ).join('')}
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:${COLORS.light}">
-        <span>${pts[0][0]}</span><span>${pts[pts.length - 1][0]}</span>
+      <div class="band-axis">
+        <span>${pts[0][0]}</span>
+        <span class="mid" style="margin-left:calc(${coldPct.toFixed(1)}% - 5rem)">coldest ${coldest}</span>
+        <span>${pts[pts.length - 1][0]}</span>
       </div>`;
   }
 
@@ -164,7 +172,7 @@ const setText = (sel, value) => {
   const countryList = Object.keys(D.sstByCountry).sort();
   let activeCountry = countryList.includes('Marshall Islands') ? 'Marshall Islands' : countryList[0];
 
-  const tempChart = Highcharts.chart('chart-sea-level-lines', {
+  const tempChart = Highcharts.chart('chart-temp', {
     chart: baseChart({ type: 'line', height: 380 }),
     xAxis: {
       categories: tempYears.map(String),
@@ -182,12 +190,42 @@ const setText = (sel, value) => {
     plotOptions: { line: { lineWidth: 1.5, marker: { enabled: false } } },
     series: [
       { name: 'Pacific countries mean', color: COLORS.gold, data: D.sstRegional.map((p) => p[1]), zIndex: 2 },
-      { name: activeCountry, color: '#B0B0B0', data: D.sstByCountry[activeCountry].map((p) => p[1]), zIndex: 1 },
+      { name: activeCountry, color: COLORS.accent, data: D.sstByCountry[activeCountry].map((p) => p[1]), zIndex: 1 },
     ],
   });
 
-  // Country pills drive the grey series.
-  const pillRow = document.querySelector('.button-row');
+  // Two toggles, as the design draws them: the regional mean and one country.
+  // The country pills below choose which country the second toggle refers to.
+  const toggleRow = document.getElementById('temp-toggles');
+  const shown = { mean: true, country: true };
+
+  function paintToggles() {
+    if (!toggleRow) return;
+    toggleRow.innerHTML = `
+      <button class="toggle" data-key="mean" data-on="${shown.mean}">
+        <span class="swatch"></span>Pacific countries mean
+      </button>
+      <button class="toggle" data-key="country" data-on="${shown.country}">
+        <span class="swatch"></span><span id="legend-country">${activeCountry}</span>
+      </button>`;
+  }
+  paintToggles();
+
+  if (toggleRow) {
+    toggleRow.addEventListener('click', (e) => {
+      const b = e.target.closest('.toggle');
+      if (!b) return;
+      const key = b.dataset.key;
+      // Never let both series go dark — an empty axis is not a state worth reaching.
+      if (shown[key] && !shown[key === 'mean' ? 'country' : 'mean']) return;
+      shown[key] = !shown[key];
+      tempChart.series[key === 'mean' ? 0 : 1].setVisible(shown[key], true);
+      paintToggles();
+    });
+  }
+
+  // Country pills choose which country the second series traces.
+  const pillRow = document.getElementById('temp-countries');
   if (pillRow) {
     pillRow.innerHTML = countryList
       .map((c) => `<button class="pill-button${c === activeCountry ? ' active' : ''}" data-country="${c}">${c}</button>`)
@@ -198,10 +236,10 @@ const setText = (sel, value) => {
       activeCountry = b.dataset.country;
       pillRow.querySelectorAll('.pill-button').forEach((x) => x.classList.toggle('active', x === b));
       tempChart.series[1].update({ name: activeCountry, data: D.sstByCountry[activeCountry].map((p) => p[1]) });
-      setText('#legend-country', activeCountry);
+      if (!shown.country) { shown.country = true; tempChart.series[1].setVisible(true, true); }
+      paintToggles();
     });
   }
-  setText('#legend-country', activeCountry);
 
   // ── 4. Sea level — regional mean only, with the rounding envelope drawn ────
   // The file is quantised to 0.1 m, so a country comparison is not available at
@@ -212,7 +250,7 @@ const setText = (sel, value) => {
   const midX = (seaYears[0] + seaYears[seaYears.length - 1]) / 2;
   const midY = seaVals.reduce((a, b) => a + b, 0) / seaVals.length;
 
-  Highcharts.chart('chart-sea-level-step', {
+  Highcharts.chart('chart-sea-level', {
     chart: baseChart({ type: 'area', height: 360 }),
     xAxis: {
       categories: seaYears.map(String), tickInterval: 3, lineWidth: 0, tickWidth: 0,
@@ -326,52 +364,100 @@ const setText = (sel, value) => {
   await buildMap(D);
 
   // ── 8. Figures quoted in the prose, computed rather than typed ────────────
-  const decliners = D.waterChange.filter((r) => r.change < 0);
-  const fmtList = (xs) => xs.length < 2 ? xs.join('')
-    : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
+  // Every number the copy asserts is looked up here. If a series is missing the
+  // span keeps its em dash, so a broken load reads as broken rather than as a
+  // plausible wrong figure.
+  const fmtList = (xs) => (xs.length < 2 ? xs.join('')
+    : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
+  const signed = (v, d = 1) => `${v > 0 ? '+' : v < 0 ? '\u2212' : ''}${Math.abs(v).toFixed(d)}`;
 
+  // emissions
+  const ghg = (c) => D.ghgLatest.find((g) => g.country === c);
+  const ghgAt = (c) => { const g = ghg(c); return g ? g.val.toFixed(1) : null; };
   setText('#fig-ghg-below4', D.ghgTrustedBelow4);
   setText('#fig-ghg-trusted', D.ghgTrustedCount);
-  setText('#fig-ghg-total', D.ghgTotalCount);
+  setText('#fig-ghg-suspect', D.ghgTotalCount - D.ghgTrustedCount);
+  for (const [id, c] of [['kiribati', 'Kiribati'], ['solomon', 'Solomon Islands'],
+    ['tuvalu', 'Tuvalu'], ['newcaledonia', 'New Caledonia']]) {
+    const v = ghgAt(c);
+    if (v !== null) setText(`#fig-ghg-${id}`, v);
+  }
+  const palau = D.ghgByYear['Palau'];
+  if (palau) {
+    const ys = Object.keys(palau).map(Number).sort((a, b) => a - b);
+    setText('#fig-ghg-palau-first', palau[ys[0]].toFixed(1));
+    setText('#fig-ghg-palau-firstyear', ys[0]);
+    setText('#fig-ghg-palau-last', palau[ys[ys.length - 1]].toFixed(1));
+    setText('#fig-ghg-palau-lastyear', ys[ys.length - 1]);
+  }
+  // The flat series are the suspect ones other than Palau, whose problem is the
+  // opposite: an impossible magnitude rather than an impossible constancy.
+  const flat = D.ghgLatest.filter((g) => g.suspect && g.country !== 'Palau').map((g) => g.country);
+  setText('#fig-ghg-flat', fmtList(flat));
+  const flatSpan = flat.length && D.ghgByYear[flat[0]] ? Object.keys(D.ghgByYear[flat[0]]).length : null;
+  if (flatSpan) setText('#fig-ghg-flatspan', flatSpan);
+
+  // sea-surface temperature
   setText('#fig-sst-territories', D.sstTerritories);
   setText('#fig-sst-span', `${D.sstYears[0]} to ${D.sstYears[1]}`);
   setText('#fig-sst-record', `${D.sstYears[1] - D.sstYears[0] + 1}-year`);
-  setText('#fig-top10', D.top10.join(', '));
-  setText('#fig-sst-recent', `${D.sstMeanRecent > 0 ? '+' : ''}${D.sstMeanRecent.toFixed(2)}`);
+  setText('#fig-top10', fmtList(D.top10.map(String)));
+  setText('#fig-sst-baseline', signed(D.sstMeanBaseline, 2));
+  setText('#fig-sst-recent', signed(D.sstMeanRecent, 2));
+  setText('#fig-sst-preind', signed(D.sstPreIndustrial, 2));
+
+  // sea level
   setText('#fig-sea-trend', D.seaTrendMm.toFixed(1));
   setText('#fig-sea-territories', D.seaTerritories);
-  setText('#fig-sea-span', `${D.seaYears[0]}–${D.seaYears[1]}`);
+  setText('#fig-sea-span', `${D.seaYears[0]}\u2013${D.seaYears[1]}`);
+
+  // rainfall
+  const withTrend = (r) => `${r.country} (${signed(r.trend, 1)} mm per decade)`;
+  setText('#fig-rain-total', D.rainTrends.length);
+  setText('#fig-rain-span', `${D.rainYears[0]}\u2013${D.rainYears[1]}`);
   setText('#fig-rain-drying', D.rainDrying);
   setText('#fig-rain-wetting', D.rainWetting);
-  setText('#fig-rain-total', D.rainTrends.length);
-  setText('#fig-rain-span', `${D.rainYears[0]}–${D.rainYears[1]}`);
-  setText('#fig-rain-driest', fmtList(
-    D.rainTrends.slice(0, 4).map((r) => `${r.country} (${r.trend.toFixed(1)})`)
-  ));
-  setText('#fig-rain-wettest', fmtList(
-    [...D.rainTrends].slice(-4).reverse().map((r) => `${r.country} (+${r.trend.toFixed(1)})`)
-  ));
+  setText('#fig-rain-driest', fmtList(D.rainTrends.slice(0, 4).map(withTrend)));
+  setText('#fig-rain-wettest', fmtList(D.rainTrends.slice(-4).reverse().map(withTrend)));
+  const rainSd = (c) => (D.rainTrends.find((r) => r.country === c) || {}).sd;
+  if (rainSd('Nauru') != null) setText('#fig-rain-nauru-sd', rainSd('Nauru').toFixed(1));
+  if (rainSd('New Caledonia') != null) setText('#fig-rain-nc-sd', rainSd('New Caledonia').toFixed(1));
+
+  // water access
+  const chg = (c) => D.waterChange.find((r) => r.country === c);
+  const gapOf = (c) => D.waterGaps.find((r) => r.country === c);
+  const ki = chg('Kiribati'), kiGap = gapOf('Kiribati');
+  if (ki) { setText('#fig-water-ki-start', ki.start.toFixed(1)); setText('#fig-water-ki-end', ki.end.toFixed(1)); }
+  if (kiGap) setText('#fig-water-ki-gap', kiGap.gap.toFixed(1));
   const widest = D.waterGaps[0];
   if (widest) {
     setText('#fig-water-widest', widest.country);
     setText('#fig-water-widest-gap', widest.gap.toFixed(1));
+    const nat = chg(widest.country);
+    if (nat) setText('#fig-water-widest-national', nat.end.toFixed(1));
   }
-  setText('#fig-water-decliners', fmtList(
-    decliners.map((r) => `${r.country} (${r.change.toFixed(1)})`)
-  ));
+  if (gapOf('Vanuatu')) setText('#fig-water-vu-gap', gapOf('Vanuatu').gap.toFixed(1));
+  if (gapOf('Fiji')) setText('#fig-water-fj-gap', gapOf('Fiji').gap.toFixed(1));
+  const decliners = D.waterChange.filter((r) => r.change < 0);
   setText('#fig-water-decliner-count', decliners.length);
+  setText('#fig-water-decliners',
+    fmtList(decliners.map((r) => `${r.country} (${signed(r.change, 1)} points)`)));
 })();
 
-// ── map ────────────────────────────────────────────────────────────────────
 async function buildMap(D) {
-  const host = document.getElementById('map-canvas');
+  const host = document.getElementById('chart-sst-map');
   if (!host || typeof Highcharts.mapChart !== 'function') return;
 
   let topology;
   try {
     topology = await fetch('https://code.highcharts.com/mapdata/custom/world.topo.json').then((r) => r.json());
   } catch (e) {
-    host.innerHTML = '<p style="padding:2rem;color:#999;font-size:14px">Map topology did not load.</p>';
+    host.classList.add('pending');
+    host.style.minHeight = '';
+    host.innerHTML = '<div><p class="pending-title">Map topology did not load</p>'
+      + '<p class="pending-body">The world outline is fetched from the Highcharts map CDN. '
+      + 'Nothing else on this page depends on it — the temperature figures above are '
+      + 'computed from the same series the map would draw.</p></div>';
     return;
   }
 

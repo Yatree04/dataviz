@@ -7,6 +7,8 @@ export const COLORS = {
   red: '#D95F52',
   blue: '#4A90E2',
   gold: '#F0AD4E',
+  accent: '#E8833A',
+  primary: '#2A78D6',
   ink: '#191919',
   muted: '#666666',
   light: '#999999',
@@ -180,6 +182,15 @@ export async function loadData() {
   }
   const top10 = [...sstRaw].sort((a, b) => b[1] - a[1]).slice(0, 10).map((p) => p[0]);
 
+  // The prose also quotes a pre-industrial comparison. That is a different
+  // baseline from the 1961–1990 one the chart is drawn against, so it is
+  // computed on the raw series rather than the re-based one.
+  const lastYear = sstRaw[sstRaw.length - 1][0];
+  const sstPreIndustrial = +(
+    meanOver(sstRaw, lastYear - 9, lastYear) - meanOver(sstRaw, 1850, 1900)
+  ).toFixed(2);
+  const sstColdestYear = [...sstRaw].sort((a, b) => a[1] - b[1])[0][0];
+
   // ── sea level ─────────────────────────────────────────────────────────────
   const seaRegional = regionalMean(SEA).map(([y, v]) => [y, +v.toFixed(4)]);
   const seaTrendMm = slope(seaRegional) * 1000;
@@ -269,6 +280,7 @@ export async function loadData() {
     sstRegional, sstByCountry, sstBaselineLabel: '1961–1990', top10,
     sstMeanBaseline: +(meanOver(sstRaw, 1961, 1990) - baseline).toFixed(2),
     sstMeanRecent: +(meanOver(sstRaw, 1995, 2024) - baseline).toFixed(2),
+    sstPreIndustrial, sstColdestYear,
     sstTerritories: Object.keys(SST).length,
     sstYears: [sstRaw[0][0], sstRaw[sstRaw.length - 1][0]],
     seaRegional, seaTrendMm: +seaTrendMm.toFixed(1),
