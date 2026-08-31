@@ -15,6 +15,8 @@
 import { COLORS, COORDS, ENSO_EVENTS, countryName } from './data.js';
 
 const FONT = { fontFamily: 'Inter, sans-serif' };
+// Line colours for compared territories; the first is the page's accent.
+const LINES = ['#E8833A', '#2A78D6', '#7B9E4F', '#9B59B6', '#C1362F'];
 const NO_DATA = '#EFECE6';
 const NO_DATA_EDGE = '#DAD5CB';
 
@@ -79,7 +81,8 @@ export async function buildSSTMap(D) {
 
   // ── state ─────────────────────────────────────────────────────────────────
   let year = Y_MAX;
-  let selected = null;      // iso of the selected territory, or null
+  let selection = [];       // isos, in the order they were picked
+  const primary = () => selection[0] || null;
   let drilled = false;      // true once the view is inside a territory
 
   // ── data builders ─────────────────────────────────────────────────────────
@@ -88,22 +91,22 @@ export async function buildSSTMap(D) {
   // rather than as a series opacity, which would fade the selection too.
   const DIM_AREA = '#EDE9E1';
   const DIM_MARK = '#DAD5CB';
-  const dimmed = (iso) => drilled && iso !== selected;
+  const dimmed = (iso) => drilled && !selection.includes(iso);
 
   const choropleth = (y) => ISOS
     .filter((iso) => geomOf[iso] && valueAt(iso, y) !== null)
     .map((iso) => ({
       iso, value: valueAt(iso, y),
       ...(dimmed(iso) ? { color: DIM_AREA } : {}),
-      borderColor: iso === selected ? COLORS.ink : 'rgba(25,25,25,0.28)',
-      borderWidth: iso === selected ? (drilled ? 2.6 : 1.8) : 0.7,
+      borderColor: selection.includes(iso) ? COLORS.ink : 'rgba(25,25,25,0.28)',
+      borderWidth: selection.includes(iso) ? (drilled ? 2.6 : 1.8) : 0.7,
     }));
 
   const markers = (y) => ISOS.map((iso) => {
     const v = valueAt(iso, y);
     if (v === null || !COORDS[iso]) return null;
     const [lat, lon] = COORDS[iso];
-    const on = iso === selected;
+    const on = selection.includes(iso);
     return {
       iso, lat, lon, name: countryName(iso), colorValue: v, value: v,
       ...(dimmed(iso) ? { color: DIM_MARK } : {}),
@@ -157,7 +160,9 @@ export async function buildSSTMap(D) {
         states: { inactive: { opacity: 1 } },
         point: {
           events: {
-            click() { select(this.iso); },
+            click(e) {
+              toggleSelect(this.iso, !!(e && (e.shiftKey || e.ctrlKey || e.metaKey)));
+            },
             dblclick() { drillTo(this.iso); },
           },
         },
@@ -202,10 +207,22 @@ export async function buildSSTMap(D) {
   chart.mapView.fitToBounds(undefined, undefined, false);
   const HOME = { center: [...chart.mapView.center], zoom: chart.mapView.zoom };
 
-  // ── selection (single click) ──────────────────────────────────────────────
-  function select(iso) {
-    selected = selected === iso ? null : iso;
+  // ── selection ─────────────────────────────────────────────────────────────
+  // Held here rather than read back from Highcharts: paintSelection calls
+  // setData, which rebuilds the points and drops their selected flag, so the
+  // chart cannot be the source of truth for what is selected.
+  function toggleSelect(iso, accumulate) {
+    if (accumulate) {
+      selection = selection.includes(iso)
+        ? selection.filter((x) => x !== iso)
+        : [...selection, iso];
+    } else {
+      selection = (selection.length === 1 && selection[0] === iso) ? [] : [iso];
+    }
+    if (!selection.length) return drillUp();
     paintSelection();
+    paintCrumb();
+    refreshDetail();
   }
 
   // setData updates existing points in place when the length matches, which
@@ -215,7 +232,7 @@ export async function buildSSTMap(D) {
   // cheaper in-place update for plain year scrubbing.
   let lastDimState = null;
   function paintSelection() {
-    const dimState = `${drilled}|${selected}`;
+    const dimState = `${drilled}|${selection.join(',')}`;
     const keepPoints = dimState === lastDimState;
     lastDimState = dimState;
     chart.get('sst-area').setData(choropleth(year), false, false, keepPoints);
@@ -224,9 +241,12 @@ export async function buildSSTMap(D) {
     if (parts) {
       // At territory zoom an atoll state's land is sub-pixel, so the selection
       // is drawn as its actual islands, each at the centroid of its own part.
-      parts.setData(drilled && selected
-        ? (partsOf[selected] || []).map((q) => ({
-          lat: q.lat, lon: q.lon, colorValue: valueAt(selected, year),
+      // Only when a single territory is the subject; a comparison has no one
+      // archipelago to draw.
+      const one = drilled && selection.length === 1 ? selection[0] : null;
+      parts.setData(one
+        ? (partsOf[one] || []).map((q) => ({
+          lat: q.lat, lon: q.lon, colorValue: valueAt(one, year),
         }))
         : [], false);
     }
@@ -241,14 +261,17 @@ export async function buildSSTMap(D) {
 
   function paintCrumb() {
     if (!crumb) return;
-    crumb.innerHTML = selected
+    const here = selection.length > 1
+      ? `${selection.length} territories`
+      : selection.length === 1 ? countryName(selection[0]) : null;
+    crumb.innerHTML = here
       ? `<button class="crumb-link" data-up="1">Pacific</button>`
-        + `<span class="crumb-sep">/</span><span class="crumb-here">${countryName(selected)}</span>`
+        + `<span class="crumb-sep">/</span><span class="crumb-here">${here}</span>`
       : `<span class="crumb-here">Pacific</span>`;
   }
 
   function drillTo(iso) {
-    selected = iso;
+    selection = [iso];
     drilled = true;
     paintSelection();
     paintCrumb();
@@ -261,11 +284,11 @@ export async function buildSSTMap(D) {
       const [lat, lon] = COORDS[iso] || [];
       if (Number.isFinite(lat)) chart.mapView.setView([lon, lat], 5.2, true, { duration: 600 });
     }
-    showDetail(iso);
+    refreshDetail();
   }
 
   function drillUp() {
-    selected = null;
+    selection = [];
     drilled = false;
     paintSelection();
     paintCrumb();
@@ -282,7 +305,7 @@ export async function buildSSTMap(D) {
   const closeBtn = document.getElementById('detail-close');
   if (closeBtn) closeBtn.addEventListener('click', drillUp);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && drilled) drillUp();
+    if (e.key === 'Escape' && selection.length) drillUp();
   });
 
   // ── the territory's own record, over time ─────────────────────────────────
@@ -330,35 +353,55 @@ export async function buildSSTMap(D) {
     return detailChart;
   }
 
-  function showDetail(iso) {
+  function refreshDetail() {
     if (!detail) return;
+    if (!selection.length) {
+      detail.hidden = true;
+      if (detailChart) { detailChart.destroy(); detailChart = null; }
+      return;
+    }
     detail.hidden = false;
-    if (detailTitle) detailTitle.textContent = countryName(iso);
+
+    const many = selection.length > 1;
+    if (detailTitle) {
+      detailTitle.textContent = many
+        ? `Comparing ${selection.length} territories`
+        : countryName(selection[0]);
+    }
 
     // Actual observations only. Years the file does not report stay absent, and
     // a null breaks the line rather than drawing across a gap that isn't there.
-    const own = [];
+    const seriesFor = (iso) => {
+      const pts = [];
+      for (let y = Y_MIN; y <= Y_MAX; y++) pts.push([y, valueAt(iso, y)]);
+      return pts;
+    };
     const mean = [];
     for (let y = Y_MIN; y <= Y_MAX; y++) {
-      own.push([y, valueAt(iso, y)]);
       mean.push([y, Number.isFinite(regionalAt[y]) ? regionalAt[y] : null]);
     }
 
-    // The territory's own long-term mean, over its whole record — the reference
-    // the anomaly is read against.
+    // One territory has a long-term mean worth drawing; several would need one
+    // reference line each, which is noise rather than context.
+    const own = seriesFor(selection[0]);
     const vals = own.map((p) => p[1]).filter((v) => v !== null);
     const longTerm = vals.reduce((a, b) => a + b, 0) / vals.length;
 
     const sub = document.getElementById('detail-sub');
-    if (sub) sub.textContent = `Surface temperature anomaly · ${Y_MIN}–${Y_MAX}`;
+    if (sub) {
+      sub.textContent = many
+        ? `Surface temperature anomaly · ${Y_MIN}–${Y_MAX} · shift-click the map to add or remove`
+        : `Surface temperature anomaly · ${Y_MIN}–${Y_MAX}`;
+    }
 
     const key = document.getElementById('detail-key');
     if (key) {
-      key.innerHTML =
-        `<span class="dk"><i class="dk-line" style="background:${COLORS.accent}"></i>`
-        + `${countryName(iso)}</span>`
+      key.innerHTML = selection
+        .map((iso, n) => `<span class="dk"><i class="dk-line" style="background:${LINES[n % LINES.length]}"></i>`
+          + `${countryName(iso)}</span>`)
+        .join('')
         + `<span class="dk"><i class="dk-line" style="background:#9C968B"></i>Pacific mean</span>`
-        + `<span class="dk"><i class="dk-dash"></i>its long-term mean ${fmt(longTerm)} °C</span>`;
+        + (many ? '' : `<span class="dk"><i class="dk-dash"></i>its long-term mean ${fmt(longTerm)} °C</span>`);
     }
 
     const c = ensureDetailChart();
@@ -373,31 +416,37 @@ export async function buildSSTMap(D) {
         },
       },
     }, false);
-    c.addSeries({
-      name: countryName(iso), data: own, color: COLORS.accent,
-      lineWidth: 1.5, zIndex: 2,
-      states: { hover: { lineWidth: 1.5 } },
-      tooltip: {
-        pointFormatter() {
-          return `<span class="tt-name">${countryName(iso)}</span> `
-            + `<span class="tt-val">${fmt(this.y)} °C</span><br>`;
+
+    selection.forEach((iso, n) => {
+      c.addSeries({
+        name: countryName(iso), data: seriesFor(iso), color: LINES[n % LINES.length],
+        lineWidth: 1.5, zIndex: 2 + n,
+        states: { hover: { lineWidth: 1.5 } },
+        tooltip: {
+          pointFormatter() {
+            return `<span class="tt-name">${countryName(iso)}</span> `
+              + `<span class="tt-val">${fmt(this.y)} °C</span><br>`;
+          },
         },
-      },
-      // Hovering the record moves the map to that year, so the two halves of
-      // the drilldown stay one object rather than two charts.
-      point: { events: { mouseOver() { scrubTo(this.x); } } },
-    }, false);
+        // Hovering the record moves the map to that year, so the two halves of
+        // the drilldown stay one object rather than two charts.
+        point: { events: { mouseOver() { scrubTo(this.x); } } },
+      }, false);
+    });
+
     c.addSeries({
-      id: 'cursor-point', type: 'scatter', data: cursorPoint(iso),
-      color: COLORS.ink, zIndex: 3, enableMouseTracking: false,
+      id: 'cursor-point', type: 'scatter', data: cursorPoint(selection[0]),
+      color: COLORS.ink, zIndex: 20, enableMouseTracking: false,
       marker: { enabled: true, radius: 4, symbol: 'circle' },
     }, false);
 
     c.yAxis[0].removePlotLine('ltm');
-    c.yAxis[0].addPlotLine({
-      id: 'ltm', value: longTerm, color: COLORS.accent,
-      width: 1, dashStyle: 'Dash', zIndex: 2,
-    });
+    if (!many) {
+      c.yAxis[0].addPlotLine({
+        id: 'ltm', value: longTerm, color: COLORS.accent,
+        width: 1, dashStyle: 'Dash', zIndex: 2,
+      });
+    }
     c.redraw();
     // The popup is absolutely positioned and starts hidden; a chart built into
     // a container with no layout measures zero, so size it once it is on screen.
@@ -442,11 +491,11 @@ export async function buildSSTMap(D) {
     if (handle) handle.style.left = `${pct}%`;
     if (yearLabel) yearLabel.textContent = year;
 
-    if (detailChart && selected) {
+    if (detailChart && selection.length) {
       detailChart.xAxis[0].update({
         plotLines: [{ id: 'cursor', value: year, color: COLORS.ink, width: 1, zIndex: 4, dashStyle: 'Dot' }],
       }, false);
-      detailChart.get('cursor-point').setData(cursorPoint(selected), false);
+      detailChart.get('cursor-point').setData(cursorPoint(selection[0]), false);
       detailChart.redraw();
     }
   }
