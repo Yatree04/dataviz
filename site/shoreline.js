@@ -15,12 +15,25 @@
 // one row per territory, iso being the ISO-3166 alpha-2 code the rest of this
 // project uses. Rates are the mean of the real per-transect values for that
 // territory; nothing is interpolated across territories that have none.
+//
+// The hexagon fill is CUMULATIVE DISPLACEMENT — how far the shoreline has moved
+// in total over the reported window — derived as rate x (period_end -
+// period_start). It is a restatement of two published columns, not a new
+// measurement. A row that reports a rate but no window has no cumulative value
+// and stays unavailable rather than being coloured from the rate alone, which
+// would put two different units on one scale.
 
 import { COORDS, countryName, COLORS } from './data.js';
 
-const RETREAT = '#C1362F';   // metres lost per year
-const ACCRETE = '#2A78D6';   // metres gained per year
-const MID = '#F7F4ED';
+// A small diverging bracket set, in the page's own palette, rather than a
+// continuous ramp — closer in feel to the reference's data-class legend and
+// easier to read at a glance than a gradient with no named steps.
+const BRACKETS = [
+  { max: -20, color: '#A32C25', label: '< \u221220 m' },
+  { max: 0, color: '#D9887F', label: '\u221220\u20130 m' },
+  { max: 20, color: '#8FB6DE', label: '0\u201320 m' },
+  { max: Infinity, color: '#2A5D9C', label: '> 20 m' },
+];
 const NO_DATA = '#E4E2DE';
 const NO_DATA_EDGE = '#B9B4AC';
 
@@ -85,10 +98,13 @@ function parseRates(text) {
     const iso = c[iIso];
     const rate = Number(c[iRate]);
     if (!iso || !Number.isFinite(rate)) continue;
+    const from = iA >= 0 && Number.isFinite(Number(c[iA])) ? Number(c[iA]) : null;
+    const to = iB >= 0 && Number.isFinite(Number(c[iB])) ? Number(c[iB]) : null;
+    const years = from !== null && to !== null ? to - from : null;
     rows[iso] = {
-      rate,
-      from: iA >= 0 ? c[iA] : null,
-      to: iB >= 0 ? c[iB] : null,
+      rate, from, to, years,
+      // total metres moved across the reported window
+      cumulative: years !== null ? rate * years : null,
       n: iN >= 0 && Number.isFinite(Number(c[iN])) ? Number(c[iN]) : null,
     };
   }
@@ -109,41 +125,47 @@ export async function buildShorelineTilemap() {
 
   const isos = Object.keys(COORDS);
   const layout = hexLayout(isos);
-  const withData = layout.filter((d) => rates[d.iso]);
+  // Only territories whose row yields a cumulative displacement can be coloured.
+  const withData = layout.filter((d) => rates[d.iso] && rates[d.iso].cumulative !== null);
 
-  // Symmetric about zero, scaled to the largest real rate present, so the
-  // midpoint is genuinely no change rather than the middle of the data.
-  const peak = withData.length
-    ? Math.max(...withData.map((d) => Math.abs(rates[d.iso].rate))) || 1
-    : 1;
+  // Brackets scale to whatever cumulative range the real data spans, so the
+  // legend always describes values actually on the map rather than a fixed
+  // +-20 m guess that might not fit the loaded file.
+  const mag = withData.length
+    ? Math.max(20, ...withData.map((d) => Math.abs(rates[d.iso].cumulative)))
+    : 20;
+  const brackets = [
+    { max: -mag / 2, color: BRACKETS[0].color, label: `< \u2212${(mag / 2).toFixed(0)} m` },
+    { max: 0, color: BRACKETS[1].color, label: `\u2212${(mag / 2).toFixed(0)}\u20130 m` },
+    { max: mag / 2, color: BRACKETS[2].color, label: `0\u2013${(mag / 2).toFixed(0)} m` },
+    { max: Infinity, color: BRACKETS[3].color, label: `> ${(mag / 2).toFixed(0)} m` },
+  ];
+  const bracketOf = (v) => brackets.find((b) => v <= b.max) || brackets[brackets.length - 1];
 
   const data = layout.map((d) => {
     const rec = rates[d.iso];
+    const has = rec && rec.cumulative !== null;
     return {
       x: d.x, y: d.y, iso: d.iso, name: countryName(d.iso),
-      value: rec ? rec.rate : null,
+      value: has ? rec.cumulative : null,
       rec: rec || null,
-      color: rec ? undefined : NO_DATA,
-      borderColor: rec ? 'rgba(25,25,25,0.25)' : NO_DATA_EDGE,
-      dashStyle: rec ? 'Solid' : 'ShortDash',
+      color: has ? bracketOf(rec.cumulative).color : NO_DATA,
+      borderColor: has ? 'rgba(255,255,255,0.85)' : NO_DATA_EDGE,
+      dashStyle: has ? 'Solid' : 'ShortDash',
     };
   });
 
   Highcharts.chart(host, {
     chart: {
       type: 'tilemap', inverted: true, backgroundColor: 'transparent',
-      height: 420, style: { fontFamily: 'Inter, sans-serif' }, spacing: [4, 4, 4, 4],
+      height: 440, style: { fontFamily: 'Inter, sans-serif' }, spacing: [8, 8, 8, 8],
     },
     title: { text: null },
     credits: { enabled: false },
     legend: { enabled: false },
     xAxis: { visible: false },
     yAxis: { visible: false },
-    colorAxis: {
-      min: -peak, max: peak,
-      startOnTick: false, endOnTick: false,
-      stops: [[0, RETREAT], [0.5, MID], [1, ACCRETE]],
-    },
+    colorAxis: { visible: false },
     tooltip: {
       useHTML: true, backgroundColor: 'rgba(255,255,255,0.97)',
       borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 4, shadow: false,
@@ -157,14 +179,15 @@ export async function buildShorelineTilemap() {
           + '<span class="tt-ref">no shoreline rate in this dataset</span>';
       },
       pointFormatter() {
-        if (!this.rec) return '';
+        if (this.value == null) return '';
         const r = this.rec;
-        const sign = r.rate > 0 ? '+' : r.rate < 0 ? '−' : '';
+        const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
+        const dir = r.cumulative < 0 ? 'retreat' : r.cumulative > 0 ? 'accretion' : 'no change';
         return `<span class="tt-name">${this.name}</span><br>`
-          + `<span class="tt-val">${sign}${Math.abs(r.rate).toFixed(2)} m/year</span> `
-          + `<span class="tt-ref">${r.rate < 0 ? 'retreat' : r.rate > 0 ? 'accretion' : 'no change'}</span><br>`
-          + (r.from && r.to ? `<span class="tt-ref">${r.from}–${r.to}</span>` : '')
-          + (r.n !== null ? `<span class="tt-ref"> · ${r.n.toLocaleString()} transects</span>` : '');
+          + `<span class="tt-val">${sign(r.cumulative)}${Math.abs(r.cumulative).toFixed(1)} m</span> `
+          + `<span class="tt-ref">cumulative ${dir}, ${r.from}\u2013${r.to}</span><br>`
+          + `<span class="tt-ref">${sign(r.rate)}${Math.abs(r.rate).toFixed(2)} m/year mean rate`
+          + (r.n !== null ? ` · ${r.n.toLocaleString()} transects` : '') + '</span>';
       },
     },
     plotOptions: {
@@ -176,7 +199,7 @@ export async function buildShorelineTilemap() {
         borderWidth: 1,
         dataLabels: {
           enabled: true, format: '{point.iso}',
-          style: { fontSize: '10px', fontWeight: '500', textOutline: 'none', color: '#3A2D2D' },
+          style: { fontSize: '11px', fontWeight: '700', textOutline: '1px rgba(255,255,255,0.65)' },
         },
         point: {
           events: {
@@ -194,11 +217,20 @@ export async function buildShorelineTilemap() {
     series: [{ name: 'Shoreline change', data }],
   });
 
+  const keyHost = document.getElementById('shoreline-key');
+  if (keyHost) {
+    keyHost.innerHTML = withData.length
+      ? brackets.map((b) => `<span class="dk"><i class="dk-dot" style="background:${b.color}"></i>${b.label}</span>`).join('')
+        + `<span class="dk"><i class="dk-dot dk-dot--nodata"></i>no data</span>`
+      : `<span class="dk"><i class="dk-dot dk-dot--nodata"></i>no data — every territory</span>`;
+  }
+
   if (note) {
     const n = withData.length;
     note.innerHTML = n
-      ? `<span id="fig-shore-n">${n}</span> of ${layout.length} territories carry a rate in `
-        + `<code>data/shoreline_rates.csv</code>; the rest are drawn unavailable, not zero.`
+      ? `<span id="fig-shore-n">${n}</span> of ${layout.length} territories carry a rate and a `
+        + `reported window in <code>data/shoreline_rates.csv</code>, coloured by cumulative `
+        + `displacement over that window; the rest are drawn unavailable, not zero.`
       : `No rate is drawn for any territory. Digital Earth Pacific&rsquo;s `
         + `<code>rates_of_change</code> layer is not in this repository — `
         + `<code>Mapping.qgz</code> points at <code>dep_ls_coastlines_0-7-0-55.gpkg</code> `

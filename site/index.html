@@ -227,17 +227,15 @@
         above.</p>
     </section>
 
-    <section class="s-md map-section">
-      <p class="label">Shoreline change · Digital Earth Pacific · rates of change (m/year)</p>
+    <section class="s-md map-section shoreline-section">
+      <p class="label">Shoreline change · Digital Earth Pacific · cumulative displacement (m)</p>
       <p class="map-lede">One hexagon per territory, placed by its real coordinates. Colour is
-        the rate of change where the source reports one.</p>
+        total shoreline movement over the source's reported window — rate &times; years —
+        where the source reports both.</p>
       <div class="chart" id="chart-shoreline"></div>
       <div class="map-foot">
         <p class="map-hint" id="shoreline-note"></p>
-        <div class="map-key">
-          <span>retreat</span><span class="key-ramp key-shore"></span><span>accretion</span>
-          <span class="key-nodata"></span><span>no data</span>
-        </div>
+        <div class="map-key" id="shoreline-key"></div>
       </div>
     </section>
 
