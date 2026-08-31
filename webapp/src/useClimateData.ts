@@ -9,7 +9,7 @@
 //   04a the sea          SEA_LVL         + regional mean, fitted trend
 //   04b the rain         RAIN_ANOM       + per-country trend & SD
 //   07 freshwater lens   SH_H2O_SAFE     + urban/rural gap, 2000→2022 change
-//   09 the count         VC_DSR_AFFCT / VC_DSR_MORT
+//   hero + map          VC_DSR_AFFCT
 
 import { useEffect, useState } from 'react';
 
@@ -96,13 +96,8 @@ export interface ClimateData {
   // Beat 07
   WATER_GAPS: WaterGap[];
   WATER_CHANGE: WaterChange[];
-  // Beat 09
+  // Disaster events — the hero stat and the map's country panel / Winston marker
   AFFECTED: AffectedEvent[];
-  AFFECTED_ANNUAL: { year: number; affected: number; mortality: number }[];
-  AFFECTED_TOTAL: number;
-  AFFECTED_TERRITORIES: number;
-  AFFECTED_BY_COUNTRY: { country: string; total: number }[];
-  MORTALITY_BY_COUNTRY: { country: string; total: number }[];
   // shared
   ENSO_EVENTS: EnsoEvent[];
   MAP_COUNTRIES: MapCountry[];
@@ -342,31 +337,17 @@ export function useClimateData() {
 
         // ── Beat 09: affected persons and mortality ─────────────────────────
         const events: AffectedEvent[] = [];
-        const mortality: AffectedEvent[] = [];
         for (const r of parseCSV(affectedText)) {
-          const ind = r.INDICATOR;
-          if (ind !== 'VC_DSR_AFFCT' && ind !== 'VC_DSR_MORT') continue;
+          // VC_DSR_AFFCT is the only clean indicator in this file — the others
+          // mix units, one reporting persons and another economic loss in USD
+          // under a similar label.
+          if (r.INDICATOR !== 'VC_DSR_AFFCT') continue;
           if (!isTotal(r)) continue;
           const iso = r.GEO_PICT, year = +r.TIME_PERIOD, val = +r.OBS_VALUE;
           if (!iso || !Number.isFinite(year) || !Number.isFinite(val) || val <= 0) continue;
-          const rec = { iso, country: countryName(iso), year, affected: Math.round(val) };
-          (ind === 'VC_DSR_AFFCT' ? events : mortality).push(rec);
+          events.push({ iso, country: countryName(iso), year, affected: Math.round(val) });
         }
         events.sort((a, b) => b.affected - a.affected);
-
-        const years = [...new Set([...events, ...mortality].map((e) => e.year))].sort();
-        const AFFECTED_ANNUAL = years.map((year) => ({
-          year,
-          affected: events.filter((e) => e.year === year).reduce((a, e) => a + e.affected, 0),
-          mortality: mortality.filter((e) => e.year === year).reduce((a, e) => a + e.affected, 0),
-        }));
-        const sumBy = (list: AffectedEvent[]) => {
-          const m = new Map<string, number>();
-          for (const e of list) m.set(e.country, (m.get(e.country) || 0) + e.affected);
-          return [...m.entries()]
-            .map(([country, total]) => ({ country, total }))
-            .sort((a, b) => b.total - a.total);
-        };
 
         // ── Beat 07: safely managed drinking water (SDG 6.1.1) ──────────────
         const urbanRural: Record<string, Record<string, Record<number, number>>> = {};
@@ -447,11 +428,6 @@ export function useClimateData() {
             WATER_GAPS,
             WATER_CHANGE,
             AFFECTED: events,
-            AFFECTED_ANNUAL,
-            AFFECTED_TOTAL: events.reduce((a, e) => a + e.affected, 0),
-            AFFECTED_TERRITORIES: new Set(events.map((e) => e.iso)).size,
-            AFFECTED_BY_COUNTRY: sumBy(events),
-            MORTALITY_BY_COUNTRY: sumBy(mortality),
             ENSO_EVENTS,
             MAP_COUNTRIES,
           });

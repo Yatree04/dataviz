@@ -201,21 +201,7 @@ export default function App() {
     ST_ANOM, ST_ANOM_REGIONAL, SST_ANOM_REGIONAL, SEA_LVL_REGIONAL,
     GHG, GHG_YEAR, RAIN_ANOM, RAIN_YEAR, AFFECTED,
     RAIN_TRENDS, RAIN_DRYING, RAIN_WETTING, RAIN_YEARS,
-    AFFECTED_ANNUAL, AFFECTED_TOTAL, AFFECTED_TERRITORIES,
-    AFFECTED_BY_COUNTRY, MORTALITY_BY_COUNTRY,
   } = data;
-
-  // Beat 09 — the concentration is the finding: a handful of years carry most
-  // of the regional total, so the share is computed rather than asserted.
-  const topFourYears = [...AFFECTED_ANNUAL].sort((a, b) => b.affected - a.affected).slice(0, 4);
-  const topFourShare = Math.round(
-    (topFourYears.reduce((a, d) => a + d.affected, 0) / AFFECTED_TOTAL) * 100
-  );
-  const affYears: [number, number] = [
-    AFFECTED_ANNUAL[0]?.year ?? 0,
-    AFFECTED_ANNUAL[AFFECTED_ANNUAL.length - 1]?.year ?? 0,
-  ];
-  const topCountry = AFFECTED_BY_COUNTRY[0];
 
   // Beat 04b — the finding is that the drying end is where the atolls cluster.
   const driestFour = RAIN_TRENDS.slice(0, 4);
@@ -806,125 +792,6 @@ export default function App() {
         </div>
       </section>
 
-      <hr style={{ border: "none", borderTop: `1px solid ${BORDER}`, margin: "0 auto", maxWidth: 680 }} />
-
-      {/* ── BEAT ⑦ CODA ── */}
-      <section style={{ padding: "72px 0" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 2rem" }}>
-          <Reveal>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-              <div style={{ width: 24, height: 24, borderRadius: "50%", border: `1.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: INK2, flexShrink: 0 }}>⑦</div>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: INK3 }}>The Count</span>
-            </div>
-            <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(20px,3vw,28px)", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", color: INK, marginBottom: 16 }}>
-              {(AFFECTED_TOTAL / 1e6).toFixed(1)} million people, and {topFourShare}% of them in four years
-            </h2>
-            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-              The SPC disaster file records directly affected persons attributed to disasters for{" "}
-              {AFFECTED_TERRITORIES} Pacific countries and territories from {affYears[0]} to {affYears[1]}. The total
-              is <strong style={{ color: INK }}>{AFFECTED_TOTAL.toLocaleString()}</strong>.
-            </p>
-            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-              {topFourShare}% of that total falls in four years.{" "}
-              {topFourYears.map((d, i) => (
-                <span key={d.year}>
-                  {i > 0 && (i === topFourYears.length - 1 ? " and " : ", ")}
-                  <strong style={{ color: INK }}>{d.year}</strong> accounts for {d.affected.toLocaleString()}
-                </span>
-              ))}
-              . The years between them are mostly in the tens of thousands.
-            </p>
-            {topCountry && (
-              <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 14 }}>
-                {topCountry.country} alone accounts for{" "}
-                <strong style={{ color: INK }}>{topCountry.total.toLocaleString()}</strong> affected persons across the
-                years reported — more than the country's population. Some people appear in that total more than once.
-              </p>
-            )}
-            <p style={{ fontSize: 15, lineHeight: 1.8, color: INK2, marginBottom: 20 }}>
-              Recorded mortality across the same file is far smaller and differently distributed:{" "}
-              {MORTALITY_BY_COUNTRY.slice(0, 4).map((m, i) => (
-                <span key={m.country}>
-                  {i > 0 && ", "}{m.country} {m.total.toLocaleString()}
-                </span>
-              ))}
-              . Pacific disaster mortality is low relative to the number affected, which is what functioning early
-              warning looks like. Displacement, damaged housing and lost water supply are what the affected count
-              measures, and it rises in bursts.
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <p style={{ fontSize: 11, color: INK3, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
-              Directly affected persons per year, {affYears[0]}–{affYears[1]} · mortality on the right axis
-            </p>
-            <HChart
-              height={300}
-              options={{
-                chart: { type: "column" },
-                xAxis: {
-                  categories: AFFECTED_ANNUAL.map((d) => String(d.year)),
-                  lineWidth: 0, tickLength: 0,
-                  labels: { style: { fontSize: "10px", color: INK3 } },
-                },
-                yAxis: [
-                  {
-                    title: { text: undefined }, gridLineColor: BORDER,
-                    labels: { formatter(this: any) { return this.value >= 1000 ? `${this.value / 1000}k` : this.value; }, style: { fontSize: "10px", color: INK3 } },
-                  },
-                  {
-                    title: { text: "deaths", style: { fontSize: "10px", color: INK3 } },
-                    opposite: true, gridLineWidth: 0,
-                    labels: { style: { fontSize: "10px", color: INK3 } },
-                  },
-                ],
-                legend: { enabled: true, itemStyle: { fontSize: "11px", color: INK3, fontWeight: "400" } },
-                tooltip: { ...HC_TOOLTIP, shared: true },
-                plotOptions: { column: { borderRadius: 2, borderWidth: 0 } },
-                series: [
-                  {
-                    type: "column", name: "People affected", yAxis: 0,
-                    data: AFFECTED_ANNUAL.map((d) => ({
-                      y: d.affected,
-                      color: topFourYears.some((t) => t.year === d.year) ? HEAT_3 : HEAT_2,
-                    })),
-                  },
-                  {
-                    type: "line", name: "Recorded deaths", yAxis: 1,
-                    data: AFFECTED_ANNUAL.map((d) => d.mortality),
-                    color: INK, lineWidth: 1.5, marker: { enabled: false },
-                  },
-                ] as any,
-              }}
-            />
-            <p style={{ fontSize: 11, color: INK3, marginTop: 8, fontStyle: "italic" }}>
-              VC_DSR_AFFCT and VC_DSR_MORT · SPC Pacific Data Hub. Darker columns are the four largest years.
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <div style={{ background: BG_SUB, borderLeft: `3px solid ${BORDER}`, padding: "12px 16px", borderRadius: "0 3px 3px 0", fontSize: 12, color: INK3, lineHeight: 1.7, marginTop: 20 }}>
-              <strong style={{ color: INK2 }}>What this count can and cannot say:</strong> VC_DSR_AFFCT is the only
-              clean indicator in this file. The others mix units — one reports persons, another reports economic loss
-              in USD under a similar label. Reporting completeness also varies by country and year, so a low national
-              total may mean few events or thin reporting rather than fewer people affected.
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <blockquote style={{
-              fontFamily: "'Fraunces',serif", fontSize: 22, fontStyle: "italic",
-              color: INK, lineHeight: 1.55, margin: "48px 0 0",
-              borderLeft: `3px solid ${BORDER}`, paddingLeft: 20,
-            }}>
-              "We are not drowning. We are fighting."
-              <cite style={{ display: "block", fontFamily: "'Inter',sans-serif", fontSize: 12, color: INK3, fontStyle: "normal", marginTop: 10, fontWeight: 400 }}>
-                — Pacific Climate Warriors
-              </cite>
-            </blockquote>
-          </Reveal>
-        </div>
-      </section>
 
       {/* ── MATERIAL & METHOD ── */}
       <section style={{ padding: "64px 0 80px", borderTop: `1px solid ${BORDER}` }}>
