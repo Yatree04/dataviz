@@ -169,25 +169,22 @@ main { padding: 0 2rem 8rem; max-width: 1167px; margin: 0 auto; }
   margin: 0;
 }
 
-/* warming stripes band */
+/* the design's temperature-density timeline: a full-width grey rule, a black
+   lead segment over the first 17%, and a dot where the two meet */
 
-#stripe-band .stripes {
-  display: flex;
-  gap: 1px;
-  height: 44px;
-  border-radius: 3px;
-  overflow: hidden;
-}
-#stripe-band .stripes > div { flex: 1 1 0; }
+.band { position: relative; width: 100%; height: 20px; }
+.band-line-full { position: absolute; left: 0; right: 0; top: 10px; width: 100%; height: 10px; display: block; }
+.band-line-lead { position: absolute; left: 0; top: 10px; width: 17%; height: 10px; display: block; }
+.band-dot { position: absolute; left: 17%; top: 4px; width: 14px; height: 13px; display: block; }
 
-#stripe-band .band-axis {
+.band-axis {
   display: flex;
   justify-content: space-between;
-  margin-top: 6px;
+  margin: 0 0 2.5rem;
   font-size: 11px;
   color: #000;
 }
-#stripe-band .band-axis .mid { color: var(--muted-foreground); }
+.band-axis-mid { margin-left: calc(17% - 2rem); }
 
 /* ── scrubbers ───────────────────────────────────────────────────────────── */
 

@@ -172,24 +172,22 @@ export async function loadData() {
     for (const k in o) o[k].sort((a, b) => a[0] - b[0]);
   }
 
-  // ── temperature, re-based to the 1961–1990 climatological baseline ────────
-  const sstRaw = regionalMean(SST);
-  const baseline = meanOver(sstRaw, 1961, 1990);
-  const sstRegional = sstRaw.map(([y, v]) => [y, +(v - baseline).toFixed(3)]);
+  // ── temperature ───────────────────────────────────────────────────────────
+  // Quoted on the file's own anomaly series, NOT re-based. SPC's SST_ANOM is
+  // already an anomaly against the NOAAGlobalTemp baseline, so re-basing it to
+  // 1961-1990 and then quoting that window back reads as zero by construction
+  // and shifts every other figure with it.
+  const sstRegional = regionalMean(SST).map(([y, v]) => [y, +v.toFixed(3)]);
   const sstByCountry = {};
-  for (const [c, pts] of Object.entries(SST)) {
-    sstByCountry[c] = pts.map(([y, v]) => [y, +(v - baseline).toFixed(3)]);
-  }
-  const top10 = [...sstRaw].sort((a, b) => b[1] - a[1]).slice(0, 10).map((p) => p[0]);
+  for (const [c, pts] of Object.entries(SST)) sstByCountry[c] = pts.map(([y, v]) => [y, v]);
+  const top10 = [...sstRegional].sort((a, b) => b[1] - a[1]).slice(0, 10).map((p) => p[0]);
 
-  // The prose also quotes a pre-industrial comparison. That is a different
-  // baseline from the 1961–1990 one the chart is drawn against, so it is
-  // computed on the raw series rather than the re-based one.
-  const lastYear = sstRaw[sstRaw.length - 1][0];
+  // "the last ten years" means the last ten complete years: the final year of
+  // the file is the current one and is still being written.
+  const lastComplete = sstRegional[sstRegional.length - 1][0] - 1;
   const sstPreIndustrial = +(
-    meanOver(sstRaw, lastYear - 9, lastYear) - meanOver(sstRaw, 1850, 1900)
+    meanOver(sstRegional, lastComplete - 9, lastComplete) - meanOver(sstRegional, 1850, 1900)
   ).toFixed(2);
-  const sstColdestYear = [...sstRaw].sort((a, b) => a[1] - b[1])[0][0];
 
   // ── sea level ─────────────────────────────────────────────────────────────
   const seaRegional = regionalMean(SEA).map(([y, v]) => [y, +v.toFixed(4)]);
@@ -277,12 +275,13 @@ export async function loadData() {
   }).filter(Boolean);
 
   return {
-    sstRegional, sstByCountry, sstBaselineLabel: '1961–1990', top10,
-    sstMeanBaseline: +(meanOver(sstRaw, 1961, 1990) - baseline).toFixed(2),
-    sstMeanRecent: +(meanOver(sstRaw, 1995, 2024) - baseline).toFixed(2),
-    sstPreIndustrial, sstColdestYear,
+    sstRegional, sstByCountry, top10,
+    sstMeanBaseline: +meanOver(sstRegional, 1961, 1990).toFixed(2),
+    sstMeanRecent: +meanOver(sstRegional, 1995, 2024).toFixed(2),
+    sstPreIndustrialYears: [lastComplete - 9, lastComplete],
+    sstPreIndustrial,
     sstTerritories: Object.keys(SST).length,
-    sstYears: [sstRaw[0][0], sstRaw[sstRaw.length - 1][0]],
+    sstYears: [sstRegional[0][0], sstRegional[sstRegional.length - 1][0]],
     seaRegional, seaTrendMm: +seaTrendMm.toFixed(1),
     seaTerritories: Object.keys(SEA).length,
     seaYears: [seaRegional[0][0], seaRegional[seaRegional.length - 1][0]],
