@@ -90,7 +90,7 @@ for iso3, iso2 in sorted(ISO3_TO_ISO2.items()):
     all_rates += rates
 
 cols = list(rows[0].keys())
-with open(OUT, 'w', newline='') as f:
+with open(OUT, 'w', newline='\n') as f:
     w = csv.DictWriter(f, cols); w.writeheader(); w.writerows(rows)
 
 nul, = db.execute("SELECT COUNT(*) FROM rates_of_change WHERE eez_territory IS NULL").fetchone()
