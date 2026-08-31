@@ -19,6 +19,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Stamp the commit into the page and onto every asset URL. Without the
+      # query strings a browser keeps serving the cached main.js, sstmap.js,
+      # data.js and style.css from a previous deploy, so a new build lands on
+      # the server but never reaches the reader. The ES module imports need it
+      # too — busting main.js alone leaves its imports cached.
+      - name: Stamp build id and bust asset caches
+        run: |
+          V="${GITHUB_SHA:0:7}"
+          sed -i "s/__BUILD__/$V/" site/index.html
+          sed -i "s|href=\"style.css\"|href=\"style.css?v=$V\"|" site/index.html
+          sed -i "s|src=\"main.js\"|src=\"main.js?v=$V\"|" site/index.html
+          sed -i "s|from './data.js'|from './data.js?v=$V'|" site/main.js site/sstmap.js
+          sed -i "s|from './sstmap.js'|from './sstmap.js?v=$V'|" site/main.js
+          echo "--- stamped $V ---"
+          grep -o 'style.css?v=[a-f0-9]*\|main.js?v=[a-f0-9]*\|__BUILD__' site/index.html || true
+          grep -o "from '\./[a-z]*\.js?v=[a-f0-9]*'" site/main.js site/sstmap.js || true
       - uses: actions/configure-pages@v5
       # site/ is plain HTML/CSS/ES modules with the CSVs alongside it —
       # nothing to compile, so the folder ships as-is.
