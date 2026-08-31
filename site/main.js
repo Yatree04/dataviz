@@ -189,7 +189,7 @@ const setText = (sel, value) => {
     tooltip: { shared: true, valueDecimals: 2, valueSuffix: '°C' },
     plotOptions: { line: { lineWidth: 1.5, marker: { enabled: false } } },
     series: [
-      { name: 'Pacific countries mean', color: COLORS.gold, data: D.sstRegional.map((p) => p[1]), zIndex: 2 },
+      { name: 'Pacific countries mean', color: COLORS.primary, data: D.sstRegional.map((p) => p[1]), zIndex: 2 },
       { name: activeCountry, color: COLORS.accent, data: D.sstByCountry[activeCountry].map((p) => p[1]), zIndex: 1 },
     ],
   });
