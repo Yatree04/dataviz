@@ -385,7 +385,7 @@ export async function buildSSTMap(D) {
     const rain = (D.rainTrends || []).find((r) => r.country === name);
     if (rain) {
       rows.push(['Rainfall trend', `${num(rain.trend, 1)} mm/decade`
-        + (rain.atoll ? ' <span class="fx-sub">atoll state</span>' : '')]);
+        + (rain.rainFed ? ' <span class="fx-sub">no rivers</span>' : '')]);
     }
 
     const water = (D.waterChange || []).find((w) => w.country === name);

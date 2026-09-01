@@ -24,11 +24,14 @@ const NAMES = {
 };
 export const countryName = (iso) => NAMES[iso] || iso;
 
-// Low-lying atoll states: no rivers, no highland catchment. Fresh water sits in
 // a lens recharged by rain alone, which is why the rainfall and freshwater
 // beats are the same argument.
-export const ATOLL_STATES = new Set([
-  'Kiribati', 'Tuvalu', 'Marshall Islands', 'Tokelau', 'Nauru', 'Micronesia',
+// Territories whose fresh water is a rain-recharged groundwater lens with no
+// river, lake or highland catchment behind it. Not a taxonomy of atolls: Nauru
+// is a raised coral island rather than an atoll, and Micronesia is deliberately
+// out because Pohnpei and Kosrae are high volcanic islands with streams.
+export const RAIN_FED_STATES = new Set([
+  'Kiribati', 'Tuvalu', 'Marshall Islands', 'Tokelau', 'Nauru',
 ]);
 
 // GHG per-capita series that fail a plausibility check. Palau is recorded at
@@ -207,7 +210,7 @@ export async function loadData() {
       country,
       trend: +(slope(series) * 10).toFixed(2),
       sd: +stdev(series.map((p) => p[1])).toFixed(1),
-      atoll: ATOLL_STATES.has(country),
+      rainFed: RAIN_FED_STATES.has(country),
       series,
     }))
     .sort((a, b) => a.trend - b.trend);
@@ -258,7 +261,7 @@ export async function loadData() {
     return {
       country, year, urban: d.U[year], rural: d.R[year],
       gap: +(d.U[year] - d.R[year]).toFixed(1),
-      atoll: ATOLL_STATES.has(country),
+      rainFed: RAIN_FED_STATES.has(country),
     };
   }).filter(Boolean).sort((a, b) => b.gap - a.gap);
 
@@ -337,6 +340,35 @@ export async function loadData() {
   shorelineTotals.pctRetreating = +(100 * shorelineTotals.retreating / shorelineTotals.good).toFixed(1);
   shorelineTotals.pctAccreting = +(100 * shorelineTotals.accreting / shorelineTotals.good).toFixed(1);
 
+  // Figures the copy quotes about the unusable emissions series and about
+  // Kiribati's rounded sea-level opening. Computed here so the prose cannot
+  // drift away from the file the way a typed number can.
+  const suspectFlat = ghgLatest.filter((g) => g.suspect && g.country !== 'Palau');
+  const flatVals = suspectFlat.flatMap((g) => Object.values(ghgByYear[g.country] || {}));
+  const palauVals = Object.values(ghgByYear.Palau || {});
+  const otherPeak = Math.max(...Object.entries(ghgByYear)
+    .filter(([c]) => c !== 'Palau')
+    .map(([, ys]) => Math.max(...Object.values(ys))));
+  const ghgFacts = {
+    palauPeak: palauVals.length ? Math.max(...palauVals) : null,
+    palauRatio: palauVals.length && otherPeak
+      ? Math.round(Math.max(...palauVals) / otherPeak) : null,
+    flatLo: flatVals.length ? Math.min(...flatVals) : null,
+    flatHi: flatVals.length ? Math.max(...flatVals) : null,
+    flatSteps: suspectFlat.length
+      ? Math.max(...suspectFlat.map((g) => new Set(Object.values(ghgByYear[g.country] || {})).size))
+      : null,
+    // How many of them never move at all across the whole record.
+    flatFrozen: suspectFlat.filter(
+      (g) => new Set(Object.values(ghgByYear[g.country] || {})).size === 1).length,
+  };
+
+  // Kiribati opens its sea-level series on a run of rounded zeros. The prose
+  // names the length of that run, so count it rather than quoting it.
+  const kiSea = SEA[countryName('KI')] || [];
+  let seaKiZeros = 0;
+  for (const [, v] of kiSea) { if (v === 0) seaKiZeros++; else break; }
+
   return {
     sstRegional, sstByCountry, top10,
     stRegional, stByCountry,
@@ -360,6 +392,7 @@ export async function loadData() {
     ghgTrustedCount: ghgLatest.filter((g) => !g.suspect).length,
     ghgTotalCount: ghgLatest.length,
     affected, waterGaps, waterChange, mapCountries,
+    ghgFacts, seaKiZeros,
     shoreline, shorelineTotals,
   };
 }

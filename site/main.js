@@ -190,7 +190,7 @@ const setText = (sel, value) => {
   Highcharts.chart('chart-rainfall', {
     chart: baseChart({ type: 'bar', height: Math.max(360, rain.length * 26) }),
     xAxis: {
-      categories: rain.map((r) => r.country + (r.atoll ? ' ◆' : '')),
+      categories: rain.map((r) => r.country + (r.rainFed ? ' ◆' : '')),
       lineWidth: 0, tickWidth: 0, labels: { style: { fontSize: '11px' } },
     },
     yAxis: {
@@ -206,7 +206,7 @@ const setText = (sel, value) => {
         const r = rain[this.index];
         return `<b>${r.country}</b><br>${r.trend > 0 ? '+' : ''}${r.trend.toFixed(2)} mm/decade`
           + `<br>year-to-year SD ${r.sd.toFixed(1)} mm`
-          + (r.atoll ? '<br><em style="color:#999">atoll state, rain-fed lens</em>' : '');
+          + (r.rainFed ? '<br><em style="color:#999">no rivers · rain-fed lens</em>' : '');
       },
     },
     plotOptions: { bar: { pointWidth: 10, borderWidth: 0 } },
@@ -269,6 +269,13 @@ const setText = (sel, value) => {
     : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   setText('#fig-sh-transects', nfmt(D.shorelineTotals.transects));
   setText('#fig-sh-good', `${nfmt(D.shorelineTotals.good)} (${D.shorelineTotals.pctGood}%)`);
+
+  // The territory keeping the fewest transects after the quality flag, named
+  // from the file. Typing it once cost a wrong total already.
+  const fewest = SH.reduce((m, r) => (r.good < m.good ? r : m));
+  setText('#fig-sh-fewest',
+    `${fewest.name}, at ${nfmt(fewest.good)} of ${nfmt(fewest.transects)},`);
+  setText('#fig-sh-fewest-p90', `+${fewest.p90.toFixed(0)}`);
 
   const byRate = [...SH].sort((a, b) => a.medianRate - b.medianRate);
   const rateColour = (v) => (v < 0 ? COLORS.red : v > 0 ? COLORS.blue : COLORS.light);
@@ -494,10 +501,20 @@ const setText = (sel, value) => {
   setText('#fig-sst-recent', signed(D.sstMeanRecent, 2));
   setText('#fig-sst-preind', signed(D.sstPreIndustrial, 2));
 
+  // emissions: the unusable series, described from the file rather than typed
+  const gf = D.ghgFacts;
+  if (gf.palauPeak != null) setText('#fig-ghg-palau-peak', gf.palauPeak.toFixed(1));
+  if (gf.palauRatio != null) setText('#fig-ghg-palau-ratio', words(gf.palauRatio));
+  if (gf.flatLo != null) setText('#fig-ghg-flat-lo', gf.flatLo.toFixed(1));
+  if (gf.flatHi != null) setText('#fig-ghg-flat-hi', gf.flatHi.toFixed(1));
+  if (gf.flatSteps != null) setText('#fig-ghg-flat-steps', words(gf.flatSteps));
+  setText('#fig-ghg-flat-frozen', gf.flatFrozen === 1 ? 'one of them' : `${words(gf.flatFrozen)} of them`);
+
   // sea level
   setText('#fig-sea-trend', D.seaTrendMm.toFixed(1));
   setText('#fig-sea-territories', words(D.seaTerritories));
   setText('#fig-sea-span', `${D.seaYears[0]} to ${D.seaYears[1]}`);
+  setText('#fig-sea-ki-zeros', words(D.seaKiZeros));
 
   // rainfall
 
@@ -512,6 +529,9 @@ const setText = (sel, value) => {
   const rainSd = (c) => (D.rainTrends.find((r) => r.country === c) || {}).sd;
   if (rainSd('Nauru') != null) setText('#fig-rain-nauru-sd', rainSd('Nauru').toFixed(1));
   if (rainSd('New Caledonia') != null) setText('#fig-rain-nc-sd', rainSd('New Caledonia').toFixed(1));
+  if (rainSd('Nauru') != null && rainSd('New Caledonia')) {
+    setText('#fig-rain-nauru-ratio', (rainSd('Nauru') / rainSd('New Caledonia')).toFixed(1));
+  }
 
   // water access
   const chg = (c) => D.waterChange.find((r) => r.country === c);
