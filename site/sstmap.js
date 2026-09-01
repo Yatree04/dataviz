@@ -4,12 +4,12 @@
 // its own visualisation below this one; the two are never mixed.
 //
 // Geometry is Natural Earth 1:10m, filtered to the territories this dataset
-// names and vendored into data/pacific.geo.json — so the map no longer depends
+// names and vendored into data/pacific.geo.json, so the map no longer depends
 // on a CDN that can fail, and every polygon on it corresponds to a real series.
 //
 // Pitcairn is the one territory drawn without a value: it has a polygon but no
-// SST observation, so it stays base land. Tokelau is the reverse — an
-// observation with no polygon in Natural Earth's country layer — so it appears
+// SST observation, so it stays base land. Tokelau is the reverse: an
+// observation with no polygon in Natural Earth's country layer, so it appears
 // as a marker only. Neither is given a number it does not have.
 
 import { COLORS, COORDS, ENSO_EVENTS, countryName } from './data.js';
@@ -169,13 +169,13 @@ export async function buildSSTMap(D) {
       },
     },
     series: [
-      // 0 — every Pacific territory as land, including any with no series
+      // 0. every Pacific territory as land, including any with no series
       {
         type: 'map', id: 'pac-base', mapData: geo, nullColor: NO_DATA,
         borderColor: NO_DATA_EDGE, borderWidth: 0.6,
         enableMouseTracking: false, showInLegend: false, zIndex: 0,
       },
-      // 2 — the observation itself, painted onto the territory
+      // 2. the observation itself, painted onto the territory
       {
         type: 'map', id: 'sst-area', mapData: geo, joinBy: ['iso', 'iso'],
         data: choropleth(Y_MAX), allowPointSelect: true, cursor: 'pointer',
@@ -184,7 +184,7 @@ export async function buildSSTMap(D) {
         states: { hover: { borderColor: COLORS.ink, borderWidth: 1.4, brightness: 0 } },
         tooltip: { pointFormatter() { return tooltipFor(this.iso); } },
       },
-      // 3 — a marker per observation, so atolls stay findable at Pacific zoom
+      // 3. a marker per observation, so atolls stay findable at Pacific zoom
       {
         type: 'mappoint', id: 'sst-point', data: markers(Y_MAX), zIndex: 3,
         colorKey: 'colorValue', allowPointSelect: true, cursor: 'pointer',
@@ -192,7 +192,7 @@ export async function buildSSTMap(D) {
         dataLabels: { enabled: false },
         tooltip: { pointFormatter() { return tooltipFor(this.iso); } },
       },
-      // 4 — the selected territory's own islands, drawn only once drilled in
+      // 4. the selected territory's own islands, drawn only once drilled in
       {
         type: 'mappoint', id: 'sel-parts', data: [], zIndex: 4,
         colorKey: 'colorValue', enableMouseTracking: false,
@@ -378,7 +378,7 @@ export async function buildSSTMap(D) {
     const ghg = (D.ghgLatest || []).find((g) => g.country === name);
     if (ghg) {
       rows.push(['Emissions', ghg.suspect
-        ? `<span class="fx-none">${ghg.val.toFixed(1)} t/capita — not usable</span>`
+        ? `<span class="fx-none">${ghg.val.toFixed(1)} t/capita, not usable</span>`
         : `${ghg.val.toFixed(1)} t/capita <span class="fx-sub">${ghg.year}</span>`]);
     }
 
@@ -414,7 +414,7 @@ export async function buildSSTMap(D) {
     }
 
     // The reference shows a flag and a name; the facts are the extension of
-    // that idea into the rest of this project's data. Only for one territory —
+    // that idea into the rest of this project's data. Only for one territory,
     // a comparison has no single set of readings.
     const facts = document.getElementById('detail-facts');
     if (facts) {
@@ -445,8 +445,8 @@ export async function buildSSTMap(D) {
     const sub = document.getElementById('detail-sub');
     if (sub) {
       sub.textContent = many
-        ? `Surface temperature anomaly · ${Y_MIN}–${Y_MAX} · shift-click the map to add or remove`
-        : `Surface temperature anomaly · ${Y_MIN}–${Y_MAX}`;
+        ? `Surface temperature anomaly · ${Y_MIN} to ${Y_MAX} · shift-click the map to add or remove`
+        : `Surface temperature anomaly · ${Y_MIN} to ${Y_MAX}`;
     }
 
     const key = document.getElementById('detail-key');
@@ -514,7 +514,7 @@ export async function buildSSTMap(D) {
   };
 
   // Hovering the detail record scrubs the map. Coalesced to one update per
-  // frame — mouseOver fires far faster than the map can usefully redraw.
+  // frame, because mouseOver fires far faster than the map can usefully redraw.
   let pending = null;
   function scrubTo(y) {
     if (y === year || y == null) return;

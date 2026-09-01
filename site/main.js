@@ -30,7 +30,7 @@ const baseChart = (extra = {}) => ({
 });
 
 const setText = (sel, value) => {
-  // querySelectorAll, not querySelector — several figures are quoted in more
+  // querySelectorAll, not querySelector, because several figures are quoted in more
   // than one place (the rainfall span appears in both the lede and the caption).
   document.querySelectorAll(sel).forEach((el) => { el.textContent = value; });
 };
@@ -96,7 +96,7 @@ const setText = (sel, value) => {
       useHTML: true,
       pointFormatter() {
         return `<b>${this.name}</b><br>${this.y.toFixed(1)} tCO₂e per capita`
-          + (this.suspect ? '<br><em style="color:#999">excluded — implausible series</em>' : '');
+          + (this.suspect ? '<br><em style="color:#999">excluded, implausible series</em>' : '');
       },
     },
     plotOptions: {
@@ -138,7 +138,7 @@ const setText = (sel, value) => {
     input.addEventListener('input', () => { stop(); renderYear(); });
   }
 
-  // ── 4. Sea level — regional mean only, with the rounding envelope drawn ────
+  // ── 4. Sea level: regional mean only, with the rounding envelope drawn ────
   // The file is quantised to 0.1 m, so a country comparison is not available at
   // any zoom. The envelope makes the resolution visible instead of footnoting it.
   const seaYears = D.seaRegional.map((p) => p[0]);
@@ -183,7 +183,7 @@ const setText = (sel, value) => {
     ],
   });
 
-  // ── 5. Rainfall — fitted trend per territory, not a single year ───────────
+  // ── 5. Rainfall: fitted trend per territory, not a single year ───────────
   // The prose makes a trend claim, and one year of an anomaly series is weather.
   const rain = D.rainTrends;
   Highcharts.chart('chart-rainfall', {
@@ -205,7 +205,7 @@ const setText = (sel, value) => {
         const r = rain[this.index];
         return `<b>${r.country}</b><br>${r.trend > 0 ? '+' : ''}${r.trend.toFixed(2)} mm/decade`
           + `<br>year-to-year SD ${r.sd.toFixed(1)} mm`
-          + (r.atoll ? '<br><em style="color:#999">atoll state — rain-fed lens</em>' : '');
+          + (r.atoll ? '<br><em style="color:#999">atoll state, rain-fed lens</em>' : '');
       },
     },
     plotOptions: { bar: { pointWidth: 10, borderWidth: 0 } },
@@ -215,7 +215,7 @@ const setText = (sel, value) => {
     }],
   });
 
-  // ── 6. Water access — urban/rural gap, and 2000→2022 change ───────────────
+  // ── 6. Water access: urban/rural gap, and 2000→2022 change ───────────────
   function dumbbells(host, rows, cfg) {
     if (!host) return;
     const lo = Math.min(...rows.flatMap((r) => [cfg.a(r), cfg.b(r)]));
@@ -304,17 +304,17 @@ const setText = (sel, value) => {
         // share it was published on, because it is missing on 40.7% of good
         // transects and missing unevenly between territories.
         const nsm = r.medianNsm == null
-          ? `<span style="color:${COLORS.light}">cumulative movement not published by DEP for any `
+          ? `<span style="color:${COLORS.light}">DEP published no cumulative movement for any `
             + `of this territory&rsquo;s good transects</span>`
           : `median cumulative movement <b>${sign(r.medianNsm, 1)} m</b> `
-            + `<span style="color:${COLORS.light}">(published on ${r.pctNsm}% of them)</span>`;
+            + `<span style="color:${COLORS.light}">(published on ${r.pctNsm.toFixed(1)}% of them)</span>`;
         return `<b>${r.name}</b><br>`
           + `median rate <b style="color:${rateColour(r.medianRate)}">${sign(r.medianRate, 3)} m/yr</b><br>`
           + `middle half: ${sign(r.p25, 2)} to ${sign(r.p75, 2)} m/yr<br>`
-          + `<span style="color:${COLORS.light}">10th–90th percentile ${sign(r.p10, 2)} to ${sign(r.p90, 2)}</span><br>`
+          + `<span style="color:${COLORS.light}">10th to 90th percentile ${sign(r.p10, 2)} to ${sign(r.p90, 2)}</span><br>`
           + `${nfmt(r.good)} good transects of ${nfmt(r.transects)}<br>`
-          + `<span style="color:${COLORS.red}">${r.pctRetreating}% retreating</span> &middot; `
-          + `<span style="color:${COLORS.blue}">${r.pctAccreting}% accreting</span><br>`
+          + `<span style="color:${COLORS.red}">${r.pctRetreating.toFixed(1)}% retreating</span> &middot; `
+          + `<span style="color:${COLORS.blue}">${r.pctAccreting.toFixed(1)}% accreting</span><br>`
           + nsm;
       },
     },
@@ -370,16 +370,16 @@ const setText = (sel, value) => {
     ? `${r.name} has none at all`
     : `${r.name} has it on ${r.pctNsm.toFixed(1)}%`);
   setText('#sh-nsm-note',
-    `Cumulative movement in metres — DEP’s net-shoreline-movement field — is `
-    + `deliberately not drawn here. It is published on only `
-    + `${(100 * nsmCov / D.shorelineTotals.good).toFixed(1)}% of good transects and the gaps are `
-    + `not evenly spread — ${cov(nsmLo)}, ${cov(nsmHi)}`
+    `Cumulative movement in metres, DEP’s net-shoreline-movement field, is left undrawn here `
+    + `on purpose. It is published on only `
+    + `${(100 * nsmCov / D.shorelineTotals.good).toFixed(1)}% of good transects, and the gaps `
+    + `are not spread evenly: ${cov(nsmLo)}, while ${cov(nsmHi)}`
     + `${nsmAlsoNone.length ? ` (${andList(nsmAlsoNone)} also ${nsmAlsoNone.length === 1 ? 'has' : 'have'} none)` : ''}. `
     + `Rate of change is the only field the file carries for every good transect in every `
     + `territory, so it is the only one compared across them. Each territory’s own cumulative `
     + `figure is in its tooltip above, with the share it was measured on.`);
 
-  // ── 7. The map — Pacific overview, drilling into one territory ────────────
+  // ── 7. The map: Pacific overview, drilling into one territory ────────────
   await buildSSTMap(D);
 
   // ── 7b. Sea-surface temperature, drawn as its own thing ───────────────────
@@ -417,13 +417,13 @@ const setText = (sel, value) => {
 
   // ── 8. Figures quoted in the prose, computed rather than typed ────────────
   // Every number the copy asserts is looked up here. If a series is missing the
-  // span keeps its em dash, so a broken load reads as broken rather than as a
+  // span keeps its ellipsis, so a broken load reads as broken rather than as a
   // plausible wrong figure.
   const fmtList = (xs) => (xs.length < 2 ? xs.join('')
     : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
   const signed = (v, d = 1) => `${v > 0 ? '+' : v < 0 ? '\u2212' : ''}${Math.abs(v).toFixed(d)}`;
 
-  // The copy spells small counts out, so the computed ones are spelled too —
+  // The copy spells small counts out, so the computed ones are spelled too;
   // otherwise the figures read as numerals in prose written for words.
   const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
     'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen',
@@ -477,10 +477,10 @@ const setText = (sel, value) => {
   setText('#fig-sst-territories', words(D.sstTerritories));
   const stOnly = Object.keys(D.stByCountry).filter((c) => !(c in D.sstByCountry));
   setText('#fig-sst-vs-st', stOnly.length
-    ? `The map above draws surface temperature, a different indicator covering `
+    ? `The map above draws surface temperature, which is a different indicator and covers `
       + `${words(D.stTerritories)} territories: ${fmtList(stOnly)} `
       + `${stOnly.length === 1 ? 'has' : 'have'} a surface series but no sea-surface one.`
-    : 'The map above draws surface temperature, a different indicator.');
+    : 'The map above draws surface temperature, which is a different indicator.');
   setText('#fig-sst-span', `${D.sstYears[0]} to ${D.sstYears[1]}`);
   setText('#fig-sst-record', `${D.sstYears[1] - D.sstYears[0] + 1}-year`);
   setText('#fig-top10', fmtList(D.top10.map(String)));
@@ -491,12 +491,12 @@ const setText = (sel, value) => {
   // sea level
   setText('#fig-sea-trend', D.seaTrendMm.toFixed(1));
   setText('#fig-sea-territories', words(D.seaTerritories));
-  setText('#fig-sea-span', `${D.seaYears[0]}\u2013${D.seaYears[1]}`);
+  setText('#fig-sea-span', `${D.seaYears[0]} to ${D.seaYears[1]}`);
 
   // rainfall
 
   setText('#fig-rain-total', words(D.rainTrends.length));
-  setText('#fig-rain-span', `${D.rainYears[0]}\u2013${D.rainYears[1]}`);
+  setText('#fig-rain-span', `${D.rainYears[0]} to ${D.rainYears[1]}`);
   setText('#fig-rain-drying', words(D.rainDrying));
   setText('#fig-rain-wetting', words(D.rainWetting));
   setText('#fig-rain-driest',

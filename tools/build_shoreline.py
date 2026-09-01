@@ -4,7 +4,7 @@
 Source
 ------
 Release asset `v1.0-dataset` on this repository contains DEP's
-`dep_ls_coastlines_0-7-0-55.gpkg` — an OGC GeoPackage (SQLite) whose
+`dep_ls_coastlines_0-7-0-55.gpkg`, an OGC GeoPackage (SQLite) whose
 `rates_of_change` table holds 2,057,082 DSAS-style transects, 1.97 GB
 uncompressed. That file is far too large to commit, so it stays out of the
 repository and this script reduces it to the 22-row CSV the page reads:
@@ -24,11 +24,11 @@ Three choices, all of them DEP's rather than ours
   left uncounted rather than rounded into one side. The choice matters: over
   all transects the regional median rate is +0.115 m/yr, over good ones
   -0.051, over good-and-significant ones -0.173.
-* `rate_time` (metres/year) is the only field with full coverage — 0% null
+* `rate_time` (metres/year) is the only field with full coverage: 0% null
   among good transects in all 22 territories. Net shoreline movement (`nsm`,
   cumulative metres) is null on 40.7% of them, and unevenly: Niue 100% null,
   Nauru 98%, Vanuatu 9.5%. That null is DEP suppressing an untrustworthy
-  endpoint pair, not a gap to fill — where DEP published `nsm` the median
+  endpoint pair, not a gap to fill. Where DEP published `nsm` the median
   |last - first| distance is 4.8 m and 0.08% exceed 500 m; where it withheld
   it those become 449.3 m and 48.64%. So `nsm` is carried per territory with
   the share it was published on attached, and never compared across them.

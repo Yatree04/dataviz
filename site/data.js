@@ -1,6 +1,6 @@
 // site/data.js
 // Loads and parses the raw SPC CSVs at runtime. Every figure on the page is
-// computed here from the source file — nothing is hand-typed, so copy and
+// computed here from the source file. Nothing is hand-typed, so copy and
 // chart cannot drift apart.
 
 export const COLORS = {
@@ -32,19 +32,19 @@ export const ATOLL_STATES = new Set([
 ]);
 
 // GHG per-capita series that fail a plausibility check. Palau is recorded at
-// 190.6 t/capita in 1970, falling ~60% while tourism grows — a bunkering or
-// denominator artifact rather than a footprint. The rest sit at a flat 0.1–0.2
+// 190.6 t/capita in 1970, falling ~60% while tourism grows, which looks like a bunkering or
+// denominator artifact rather than a footprint. The rest sit at a flat 0.1 to 0.2
 // for five decades, which is a coverage failure, not a measurement.
 export const SUSPECT_GHG = {
-  Palau: '190.6 t/capita in 1970 — four times any national figure recorded anywhere',
-  Nauru: 'flat 0.1–0.2 t for 55 consecutive years',
-  Guam: 'flat 0.1–0.2 t for 55 consecutive years',
-  'Marshall Islands': 'flat 0.1–0.2 t for 55 consecutive years',
-  'N. Mariana Is': 'flat 0.1–0.2 t for 55 consecutive years',
-  'American Samoa': 'flat 0.1–0.2 t for 55 consecutive years',
+  Palau: '190.6 t/capita in 1970, four times any national figure recorded anywhere',
+  Nauru: 'flat 0.1 to 0.2 t for 55 consecutive years',
+  Guam: 'flat 0.1 to 0.2 t for 55 consecutive years',
+  'Marshall Islands': 'flat 0.1 to 0.2 t for 55 consecutive years',
+  'N. Mariana Is': 'flat 0.1 to 0.2 t for 55 consecutive years',
+  'American Samoa': 'flat 0.1 to 0.2 t for 55 consecutive years',
 };
 
-// Restricted to events uncontroversial in the literature. Annotation only —
+// Restricted to events uncontroversial in the literature. Annotation only:
 // never a fitted or derived quantity.
 export const ENSO_EVENTS = [
   { start: 1982, end: 1983, phase: 'el-nino' },
@@ -73,7 +73,7 @@ export const COORDS = {
 /**
  * Split one CSV line, honouring double-quoted fields that contain commas.
  * 755 rows in sea_temp.csv carry the country name
- * "Micronesia, Federated State of" — a naive split(',') shifts every later
+ * "Micronesia, Federated State of". A naive split(',') shifts every later
  * column, so Micronesia's year and value get read from the wrong fields and the
  * country silently disappears from every derived statistic.
  */
@@ -231,7 +231,7 @@ export async function loadData() {
   // ── disaster events ───────────────────────────────────────────────────────
   const affected = [];
   for (const r of parseCSV(affectedText)) {
-    // VC_DSR_AFFCT is the only clean indicator in this file — the others mix
+    // VC_DSR_AFFCT is the only clean indicator in this file. The others mix
     // units, one reporting persons and another economic loss in USD.
     if (r.INDICATOR !== 'VC_DSR_AFFCT' || !isTotal(r)) continue;
     const iso = r.GEO_PICT, year = +r.TIME_PERIOD, val = +r.OBS_VALUE;
@@ -301,7 +301,7 @@ export async function loadData() {
   //  · rate_time (metres/year) is the only field with full coverage across
   //    all 22 territories. Net shoreline movement (nsm, cumulative metres) is
   //    withheld by DEP on 40.7% of good transects and the missingness is
-  //    wildly uneven — Niue 0% published, Vanuatu 90.5% — so it is carried
+  //    wildly uneven (Niue 0% published, Vanuatu 90.5%), so it is carried
   //    per territory with its coverage attached and never compared across
   //    territories as if it were complete.
   const shoreline = parseCSV(shorelineText)
