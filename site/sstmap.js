@@ -378,7 +378,7 @@ export async function buildSSTMap(D) {
     const ghg = (D.ghgLatest || []).find((g) => g.country === name);
     if (ghg) {
       rows.push(['Emissions', ghg.suspect
-        ? `<span class="fx-none">${ghg.val.toFixed(1)} t/capita, not usable</span>`
+        ? `<span class="fx-none">${ghg.val.toFixed(1)} t/capita · series not counted</span>`
         : `${ghg.val.toFixed(1)} t/capita <span class="fx-sub">${ghg.year}</span>`]);
     }
 

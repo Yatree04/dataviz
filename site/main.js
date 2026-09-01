@@ -56,9 +56,10 @@ const setText = (sel, value) => {
   });
 
   // ── 1. Emissions, animated by year ────────────────────────────────────────
-  // A racing bar over the real GHG_EMI_CAPITA series. The six implausible
-  // series are drawn in a muted hatch-grey and labelled, not hidden: a gap you
-  // can see is more honest than a country that quietly vanishes.
+  // A racing bar over the real GHG_EMI_CAPITA series. The six unusable series
+  // are drawn in a muted grey and labelled, not hidden: a gap you can see is
+  // more honest than a country that quietly vanishes. The label names the
+  // series as the problem, never the place it belongs to.
   const START = 1970, END = 2024, TOP_N = 16;
   const btn = document.getElementById('play-pause-button');
   const input = document.getElementById('play-range');
@@ -96,7 +97,7 @@ const setText = (sel, value) => {
       useHTML: true,
       pointFormatter() {
         return `<b>${this.name}</b><br>${this.y.toFixed(1)} tCO₂e per capita`
-          + (this.suspect ? '<br><em style="color:#999">excluded, implausible series</em>' : '');
+          + (this.suspect ? '<br><em style="color:#999">not counted here · reporting artefact</em>' : '');
       },
     },
     plotOptions: {
@@ -370,14 +371,16 @@ const setText = (sel, value) => {
     ? `${r.name} has none at all`
     : `${r.name} has it on ${r.pctNsm.toFixed(1)}%`);
   setText('#sh-nsm-note',
-    `Cumulative movement in metres, DEP’s net-shoreline-movement field, is left undrawn here `
-    + `on purpose. It is published on only `
-    + `${(100 * nsmCov / D.shorelineTotals.good).toFixed(1)}% of good transects, and the gaps `
-    + `are not spread evenly: ${cov(nsmLo)}, while ${cov(nsmHi)}`
+    `One field I have deliberately not drawn: cumulative movement in metres, DEP’s `
+    + `net-shoreline-movement column. It is published on only `
+    + `${(100 * nsmCov / D.shorelineTotals.good).toFixed(1)}% of good transects, and the `
+    + `coverage is uneven enough that comparing territories on it would say more about which `
+    + `ones DEP could measure than about which coastlines moved: ${cov(nsmLo)}, while `
+    + `${cov(nsmHi)}`
     + `${nsmAlsoNone.length ? ` (${andList(nsmAlsoNone)} also ${nsmAlsoNone.length === 1 ? 'has' : 'have'} none)` : ''}. `
-    + `Rate of change is the only field the file carries for every good transect in every `
-    + `territory, so it is the only one compared across them. Each territory’s own cumulative `
-    + `figure is in its tooltip above, with the share it was measured on.`);
+    + `Rate of change is the one field carried for every good transect in every territory, so `
+    + `it is the only one I have compared across them. Each territory’s own cumulative figure `
+    + `is in its tooltip above, with the share it was measured on.`);
 
   // ── 7. The map: Pacific overview, drilling into one territory ────────────
   await buildSSTMap(D);
@@ -453,7 +456,8 @@ const setText = (sel, value) => {
   const ghgAt = (c) => { const g = ghg(c); return g ? g.val.toFixed(1) : null; };
   setText('#fig-ghg-below4', cap(words(D.ghgTrustedBelow4)));
   setText('#fig-ghg-trusted', words(D.ghgTrustedCount));
-  setText('#fig-ghg-suspect', cap(words(D.ghgTotalCount - D.ghgTrustedCount)));
+  // Mid-sentence now ("There are six further series..."), so it is not capitalised.
+  setText('#fig-ghg-suspect', words(D.ghgTotalCount - D.ghgTrustedCount));
   for (const [id, c] of [['kiribati', 'Kiribati'], ['solomon', 'Solomon Islands'],
     ['tuvalu', 'Tuvalu'], ['newcaledonia', 'New Caledonia']]) {
     const v = ghgAt(c);
@@ -477,9 +481,11 @@ const setText = (sel, value) => {
   setText('#fig-sst-territories', words(D.sstTerritories));
   const stOnly = Object.keys(D.stByCountry).filter((c) => !(c in D.sstByCountry));
   setText('#fig-sst-vs-st', stOnly.length
-    ? `The map above draws surface temperature, which is a different indicator and covers `
-      + `${words(D.stTerritories)} territories: ${fmtList(stOnly)} `
-      + `${stOnly.length === 1 ? 'has' : 'have'} a surface series but no sea-surface one.`
+    ? `The map above draws surface temperature, which is a different indicator covering `
+      + `${words(D.stTerritories)} territories. The one that does not line up is `
+      + `${fmtList(stOnly)}, which ${stOnly.length === 1 ? 'has' : 'have'} a surface series in `
+      + `this file and no sea-surface one, so ${stOnly.length === 1 ? 'it is' : 'they are'} `
+      + `absent from the rows above rather than sitting at zero.`
     : 'The map above draws surface temperature, which is a different indicator.');
   setText('#fig-sst-span', `${D.sstYears[0]} to ${D.sstYears[1]}`);
   setText('#fig-sst-record', `${D.sstYears[1] - D.sstYears[0] + 1}-year`);
